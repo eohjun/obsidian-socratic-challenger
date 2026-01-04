@@ -140,7 +140,7 @@ export class DialogueModal extends Modal {
           }
         }
       });
-      label.createSpan({ text: `${info.icon} ${info.displayText}` });
+      label.createSpan({ text: info.displayText });
     });
   }
 
