@@ -168,6 +168,39 @@
   color: #c0392b;
 }
 
+/* Previous Dialogue Section */
+.socratic-previous-dialogue {
+  background-color: var(--background-secondary);
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid var(--interactive-accent);
+}
+
+.socratic-previous-dialogue h4 {
+  margin: 0 0 12px 0;
+  color: var(--text-normal);
+}
+
+.socratic-previous-dialogue .previous-info {
+  margin-bottom: 16px;
+}
+
+.socratic-previous-dialogue .previous-date {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.socratic-previous-dialogue .previous-stats {
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.socratic-previous-dialogue .previous-actions {
+  display: flex;
+  gap: 12px;
+}
+
 /* Settings */
 .socratic-settings-section {
   margin-bottom: 24px;

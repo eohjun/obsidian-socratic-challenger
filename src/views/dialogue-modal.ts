@@ -49,7 +49,7 @@ export class DialogueModal extends Modal {
     this.questionCount = plugin.settings.dialogue.defaultQuestionCount;
   }
 
-  onOpen(): void {
+  async onOpen(): Promise<void> {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass('socratic-challenger-modal');
@@ -59,6 +59,9 @@ export class DialogueModal extends Modal {
     this.renderControls(contentEl);
     this.renderQuestionArea(contentEl);
     this.renderActions(contentEl);
+
+    // Check for previous dialogue
+    await this.checkForPreviousDialogue();
   }
 
   onClose(): void {
@@ -399,5 +402,76 @@ export class DialogueModal extends Modal {
         loadingDiv.createSpan({ text: '질문을 생성하고 있습니다...' });
       }
     }
+  }
+
+  private async checkForPreviousDialogue(): Promise<void> {
+    try {
+      const repository = new ObsidianDialogueRepository(this.app);
+      const previousSession = await repository.findByNoteId(this.noteId);
+
+      if (previousSession && this.questionContainer) {
+        // Show option to load previous dialogue
+        this.questionContainer.empty();
+
+        const previousDiv = this.questionContainer.createDiv({ cls: 'socratic-previous-dialogue' });
+        previousDiv.createEl('h4', { text: '📚 이전 대화 발견' });
+
+        const infoDiv = previousDiv.createDiv({ cls: 'previous-info' });
+        const questionCount = previousSession.questions.length;
+        const answeredCount = previousSession.getAnsweredQuestions().length;
+        const createdAt = new Date(previousSession.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        infoDiv.createDiv({
+          text: `생성일: ${createdAt}`,
+          cls: 'previous-date',
+        });
+        infoDiv.createDiv({
+          text: `질문 ${questionCount}개 중 ${answeredCount}개 답변됨`,
+          cls: 'previous-stats',
+        });
+
+        const actionsDiv = previousDiv.createDiv({ cls: 'previous-actions' });
+
+        new ButtonComponent(actionsDiv)
+          .setButtonText('📖 이전 대화 불러오기')
+          .setCta()
+          .onClick(() => this.loadPreviousDialogue(previousSession));
+
+        new ButtonComponent(actionsDiv)
+          .setButtonText('🆕 새로 시작')
+          .onClick(() => this.startNewDialogue());
+      }
+    } catch (error) {
+      console.warn('Failed to check for previous dialogue:', error);
+    }
+  }
+
+  private loadPreviousDialogue(session: DialogueSession): void {
+    this.session = session;
+
+    // Update intensity from loaded session
+    this.selectedIntensity = session.intensity;
+
+    // Render the loaded questions
+    this.renderQuestions();
+    this.updateActionButtons();
+
+    new Notice('이전 대화를 불러왔습니다.');
+  }
+
+  private startNewDialogue(): void {
+    if (!this.questionContainer) return;
+
+    this.questionContainer.empty();
+    this.questionContainer.createDiv({
+      cls: 'socratic-empty-state',
+      text: '"질문 생성" 버튼을 클릭하여 시작하세요.',
+    });
   }
 }
