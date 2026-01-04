@@ -8,7 +8,8 @@ import { DialogueSession, type DialogueSessionData } from '../../domain/entities
 import type { IDialogueRepository } from '../../domain/interfaces/dialogue-repository.interface';
 
 const DIALOGUE_SECTION_MARKER = '## Socratic Dialogue';
-const DATA_BLOCK_PREFIX = 'SOCRATIC_DATA:';
+const CALLOUT_START = '> [!abstract]- Socratic Data (세션 데이터 - 수정하지 마세요)';
+const CALLOUT_DATA_PREFIX = '> ';
 
 export class ObsidianDialogueRepository implements IDialogueRepository {
   constructor(private readonly app: App) {}
@@ -38,8 +39,8 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
     // Exclude noteContext from saved data to reduce file size
     const sessionData = JSON.stringify(session.toData({ excludeNoteContext: true }));
 
-    // Use proper Obsidian comment format: %%content%%
-    const dataBlock = `\n%%${DATA_BLOCK_PREFIX}${sessionData}%%\n`;
+    // Use collapsible callout format (collapsed by default with '-')
+    const dataBlock = `\n${CALLOUT_START}\n${CALLOUT_DATA_PREFIX}${sessionData}\n`;
 
     // Check if dialogue section already exists
     const sectionIndex = content.indexOf(DIALOGUE_SECTION_MARKER);
@@ -102,31 +103,42 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
   private parseSessionsFromContent(content: string, noteContext: string): DialogueSession[] {
     const sessions: DialogueSession[] = [];
 
-    // Find all data blocks with proper Obsidian comment format: %%SOCRATIC_DATA:{json}%%
-    // Also support legacy format for backward compatibility
-    const newFormatRegex = new RegExp(
-      `%%${DATA_BLOCK_PREFIX}([\\s\\S]*?)%%`,
-      'g'
-    );
-    const legacyRegex = /%%SOCRATIC_DATA_START%%\n([\s\S]*?)\n%%SOCRATIC_DATA_END%%/g;
+    // Try callout format first: > [!abstract]- Socratic Data...\n> {json}
+    const calloutRegex = /> \[!abstract\]- Socratic Data[^\n]*\n> (\{[\s\S]*?\})(?=\n(?!>)|$)/g;
 
-    // Try new format first
+    // Legacy formats for backward compatibility
+    const commentRegex = /%%SOCRATIC_DATA:([^%]+)%%/g;
+    const oldLegacyRegex = /%%SOCRATIC_DATA_START%%\n([\s\S]*?)\n%%SOCRATIC_DATA_END%%/g;
+
     let match;
-    while ((match = newFormatRegex.exec(content)) !== null) {
+
+    // Try callout format
+    while ((match = calloutRegex.exec(content)) !== null) {
       try {
         const dataStr = match[1].trim();
         const data: DialogueSessionData = JSON.parse(dataStr);
-        // Pass noteContext to reconstruct the session with context
         sessions.push(DialogueSession.fromData(data, noteContext));
       } catch {
-        // Skip invalid data blocks
-        console.warn('Failed to parse dialogue session data');
+        console.warn('Failed to parse callout dialogue session data');
       }
     }
 
-    // If no sessions found, try legacy format
+    // If no sessions found, try comment format
     if (sessions.length === 0) {
-      while ((match = legacyRegex.exec(content)) !== null) {
+      while ((match = commentRegex.exec(content)) !== null) {
+        try {
+          const dataStr = match[1].trim();
+          const data: DialogueSessionData = JSON.parse(dataStr);
+          sessions.push(DialogueSession.fromData(data, noteContext));
+        } catch {
+          console.warn('Failed to parse comment dialogue session data');
+        }
+      }
+    }
+
+    // If still no sessions, try old legacy format
+    if (sessions.length === 0) {
+      while ((match = oldLegacyRegex.exec(content)) !== null) {
         try {
           const dataStr = match[1].trim();
           const data: DialogueSessionData = JSON.parse(dataStr);
@@ -147,9 +159,15 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
     for (const file of files) {
       const content = await this.app.vault.read(file);
       if (content.includes(sessionId)) {
-        // Remove the session data block containing this ID (new format)
-        const newFormatRegex = new RegExp(
-          `%%${DATA_BLOCK_PREFIX}[\\s\\S]*?"id"\\s*:\\s*"${sessionId}"[\\s\\S]*?%%`,
+        // Remove the session data block containing this ID
+        // Callout format
+        const calloutRegex = new RegExp(
+          `> \\[!abstract\\]- Socratic Data[^\\n]*\\n> [^\\n]*"id"\\s*:\\s*"${sessionId}"[^\\n]*\\n?`,
+          'g'
+        );
+        // Comment format
+        const commentRegex = new RegExp(
+          `%%SOCRATIC_DATA:[^%]*"id"\\s*:\\s*"${sessionId}"[^%]*%%`,
           'g'
         );
         // Legacy format
@@ -158,14 +176,16 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
           'g'
         );
 
-        let updatedContent = content.replace(newFormatRegex, '');
+        let updatedContent = content.replace(calloutRegex, '');
+        updatedContent = updatedContent.replace(commentRegex, '');
         updatedContent = updatedContent.replace(legacyRegex, '');
 
         // If no sessions remain, remove the entire dialogue section
-        const hasNewFormat = updatedContent.includes(`%%${DATA_BLOCK_PREFIX}`);
-        const hasLegacyFormat = updatedContent.includes('%%SOCRATIC_DATA_START%%');
+        const hasCallout = updatedContent.includes('> [!abstract]- Socratic Data');
+        const hasComment = updatedContent.includes('%%SOCRATIC_DATA:');
+        const hasLegacy = updatedContent.includes('%%SOCRATIC_DATA_START%%');
 
-        if (!hasNewFormat && !hasLegacyFormat) {
+        if (!hasCallout && !hasComment && !hasLegacy) {
           const sectionRegex = new RegExp(
             `\\n*---\\n*\\n*${DIALOGUE_SECTION_MARKER}[\\s\\S]*$`,
             ''
