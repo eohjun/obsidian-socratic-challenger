@@ -69,4 +69,9 @@ export interface ILLMProvider {
    * 프로바이더가 사용 가능한지 확인
    */
   isAvailable(): boolean;
+
+  /**
+   * API 키 유효성 테스트
+   */
+  testApiKey(): Promise<{ success: boolean; message: string }>;
 }

@@ -2,7 +2,7 @@
  * Socratic Challenger Settings Tab
  */
 
-import { App, PluginSettingTab, Setting, DropdownComponent } from 'obsidian';
+import { App, PluginSettingTab, Setting, DropdownComponent, Notice } from 'obsidian';
 import type SocraticChallengerPlugin from '../../main';
 import type { AIProviderType } from '../../core/application/services/ai-service';
 import { AI_PROVIDERS, getModelsByProvider } from '../../core/domain/constants/model-configs';
@@ -60,6 +60,35 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           });
         text.inputEl.type = 'password';
+      })
+      .addButton((button) => {
+        button
+          .setButtonText('테스트')
+          .onClick(async () => {
+            const provider = this.plugin.getCurrentProvider();
+            if (!provider) {
+              new Notice('프로바이더를 찾을 수 없습니다.');
+              return;
+            }
+
+            button.setDisabled(true);
+            button.setButtonText('테스트 중...');
+
+            try {
+              const result = await provider.testApiKey();
+              if (result.success) {
+                new Notice(`✅ ${result.message}`);
+              } else {
+                new Notice(`❌ ${result.message}`);
+              }
+            } catch (error) {
+              const message = error instanceof Error ? error.message : '알 수 없는 오류';
+              new Notice(`❌ 테스트 실패: ${message}`);
+            } finally {
+              button.setDisabled(false);
+              button.setButtonText('테스트');
+            }
+          });
       });
 
     // Model Selection

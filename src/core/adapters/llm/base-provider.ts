@@ -80,6 +80,26 @@ export abstract class BaseProvider implements ILLMProvider {
 
   abstract generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse>;
 
+  /**
+   * Test API key validity with a minimal request
+   */
+  async testApiKey(): Promise<{ success: boolean; message: string }> {
+    if (!this.apiKey) {
+      return { success: false, message: 'API 키가 입력되지 않았습니다.' };
+    }
+
+    try {
+      const response = await this.simpleGenerate('Hi', undefined, { maxTokens: 5 });
+      if (response.success) {
+        return { success: true, message: 'API 키가 유효합니다!' };
+      }
+      return { success: false, message: response.error ?? '알 수 없는 오류' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      return { success: false, message };
+    }
+  }
+
   async simpleGenerate(
     userPrompt: string,
     systemPrompt?: string,
