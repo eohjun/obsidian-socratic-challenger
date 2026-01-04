@@ -4,6 +4,15 @@
   max-width: 800px;
 }
 
+/* Enable text selection for content areas */
+.socratic-challenger-modal .note-content,
+.socratic-challenger-modal .question-content,
+.socratic-challenger-modal .socratic-response-saved {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
 .socratic-challenger-modal .modal-content {
   padding: 20px;
 }
