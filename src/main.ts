@@ -28,21 +28,6 @@ export default class SocraticChallengerPlugin extends Plugin {
       callback: () => this.startDialogue(),
     });
 
-    this.addCommand({
-      id: 'start-socratic-dialogue-for-current-note',
-      name: 'Start Socratic Dialogue for Current Note',
-      checkCallback: (checking: boolean) => {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (activeFile) {
-          if (!checking) {
-            this.startDialogueForFile(activeFile);
-          }
-          return true;
-        }
-        return false;
-      },
-    });
-
     // Add ribbon icon
     this.addRibbonIcon('message-circle', 'Socratic Challenger', () => {
       this.startDialogue();
