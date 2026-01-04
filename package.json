@@ -1,6 +1,6 @@
 {
   "name": "obsidian-socratic-challenger",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "AI dialogue partner that asks Socratic questions to deepen thinking",
   "main": "main.js",
   "scripts": {
