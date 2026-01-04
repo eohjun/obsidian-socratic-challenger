@@ -1,0 +1,95 @@
+/**
+ * OpenAI Provider
+ * OpenAI GPT API implementation
+ */
+
+import { BaseProvider } from './base-provider';
+import type { AIProviderType } from '../../application/services/ai-service';
+import type { LLMMessage, LLMResponse, LLMGenerateOptions } from '../../domain/interfaces/llm-provider.interface';
+
+interface OpenAIMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface OpenAIRequest {
+  model: string;
+  messages: OpenAIMessage[];
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  stop?: string[];
+}
+
+interface OpenAIResponse {
+  choices: { message: { content: string } }[];
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  error?: { message: string; type: string };
+}
+
+export class OpenAIProvider extends BaseProvider {
+  readonly providerType: AIProviderType = 'openai';
+  readonly name = 'OpenAI';
+
+  async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse> {
+    if (!this.isAvailable()) {
+      return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };
+    }
+
+    const openaiMessages: OpenAIMessage[] = messages.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
+
+    const requestBody: OpenAIRequest = {
+      model: this.modelId,
+      messages: openaiMessages,
+      max_tokens: options?.maxTokens ?? 4096,
+      temperature: options?.temperature ?? 0.7,
+    };
+
+    if (options?.topP !== undefined) {
+      requestBody.top_p = options.topP;
+    }
+
+    if (options?.stopSequences) {
+      requestBody.stop = options.stopSequences;
+    }
+
+    try {
+      const response = await this.makeRequest<OpenAIResponse>({
+        url: `${this.config.endpoint}/chat/completions`,
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.error) {
+        return {
+          success: false,
+          content: '',
+          error: response.error.message,
+        };
+      }
+
+      const content = response.choices?.[0]?.message?.content ?? '';
+
+      return {
+        success: true,
+        content,
+        usage: response.usage
+          ? {
+              inputTokens: response.usage.prompt_tokens,
+              outputTokens: response.usage.completion_tokens,
+              totalTokens: response.usage.total_tokens,
+            }
+          : undefined,
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
+  }
+}

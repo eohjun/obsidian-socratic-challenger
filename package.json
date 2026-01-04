@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-socratic-challenger",
+  "version": "0.1.0",
+  "description": "AI dialogue partner that asks Socratic questions to deepen thinking",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "typecheck": "tsc -noEmit -skipLibCheck"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "ai",
+    "socratic",
+    "pkm"
+  ],
+  "author": "eohjun",
+  "license": "MIT",
+  "devDependencies": {
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.27.2",
+    "obsidian": "^1.11.0",
+    "typescript": "^5.9.3"
+  }
+}

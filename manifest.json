@@ -1,0 +1,10 @@
+{
+  "id": "socratic-challenger",
+  "name": "Socratic Challenger",
+  "version": "0.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "AI dialogue partner that asks Socratic questions to deepen your thinking",
+  "author": "eohjun",
+  "authorUrl": "https://github.com/eohjun",
+  "isDesktopOnly": false
+}

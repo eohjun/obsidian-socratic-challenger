@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs (keep for BRAT)
+# main.js
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+npm-debug.log*
+
+# Test
+coverage/
+
+# Environment
+.env
+.env.local

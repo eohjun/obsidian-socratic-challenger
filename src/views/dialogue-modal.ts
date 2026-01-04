@@ -1,0 +1,403 @@
+/**
+ * Dialogue Modal
+ * 소크라테스식 대화를 위한 모달 UI
+ */
+
+import { App, Modal, Setting, Notice, TextAreaComponent, ButtonComponent } from 'obsidian';
+import type SocraticChallengerPlugin from '../main';
+import { DialogueSession } from '../core/domain/entities/dialogue-session';
+import { Question } from '../core/domain/entities/question';
+import { QuestionType, QuestionTypeEnum } from '../core/domain/value-objects/question-type';
+import { IntensityLevel, IntensityLevelEnum } from '../core/domain/value-objects/intensity-level';
+import { GenerateQuestionsUseCase } from '../core/application/use-cases/generate-questions';
+import { ContinueDialogueUseCase } from '../core/application/use-cases/continue-dialogue';
+import { ObsidianDialogueRepository } from '../core/adapters/obsidian/dialogue-repository';
+
+export class DialogueModal extends Modal {
+  private plugin: SocraticChallengerPlugin;
+  private noteContent: string;
+  private notePath: string;
+  private noteId: string;
+
+  private session: DialogueSession | null = null;
+  private selectedTypes: QuestionTypeEnum[];
+  private selectedIntensity: IntensityLevel;
+  private questionCount: number;
+
+  private responseInputs: Map<string, TextAreaComponent> = new Map();
+  private questionContainer: HTMLElement | null = null;
+  private actionsContainer: HTMLElement | null = null;
+  private isLoading = false;
+
+  constructor(
+    app: App,
+    plugin: SocraticChallengerPlugin,
+    noteContent: string,
+    notePath: string
+  ) {
+    super(app);
+    this.plugin = plugin;
+    this.noteContent = noteContent;
+    this.notePath = notePath;
+    this.noteId = notePath;
+
+    // Initialize with defaults
+    this.selectedTypes = [...plugin.settings.dialogue.defaultQuestionTypes];
+    this.selectedIntensity = IntensityLevel.create(
+      plugin.settings.dialogue.defaultIntensity
+    );
+    this.questionCount = plugin.settings.dialogue.defaultQuestionCount;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass('socratic-challenger-modal');
+
+    this.renderHeader(contentEl);
+    this.renderNoteContext(contentEl);
+    this.renderControls(contentEl);
+    this.renderQuestionArea(contentEl);
+    this.renderActions(contentEl);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+    this.responseInputs.clear();
+  }
+
+  private renderHeader(container: HTMLElement): void {
+    const header = container.createDiv({ cls: 'socratic-header' });
+    header.createEl('h2', { text: '🏛️ Socratic Challenger' });
+    header.createEl('p', {
+      text: '당신의 아이디어에 대해 깊이 있는 질문을 던져드립니다.',
+      cls: 'socratic-subtitle',
+    });
+  }
+
+  private renderNoteContext(container: HTMLElement): void {
+    const contextDiv = container.createDiv({ cls: 'socratic-note-context' });
+    contextDiv.createEl('h4', { text: '📝 노트 내용' });
+
+    const preview =
+      this.noteContent.length > 500
+        ? this.noteContent.substring(0, 500) + '...'
+        : this.noteContent;
+
+    contextDiv.createDiv({ cls: 'note-content', text: preview });
+  }
+
+  private renderControls(container: HTMLElement): void {
+    const controlsDiv = container.createDiv({ cls: 'socratic-controls' });
+
+    // Intensity selector
+    new Setting(controlsDiv)
+      .setName('질문 강도')
+      .addDropdown((dropdown) => {
+        IntensityLevel.all().forEach((level) => {
+          dropdown.addOption(level.getValue(), level.getDisplayText());
+        });
+        dropdown.setValue(this.selectedIntensity.getValue());
+        dropdown.onChange((value) => {
+          this.selectedIntensity = IntensityLevel.create(value as IntensityLevelEnum);
+        });
+      });
+
+    // Question count
+    new Setting(controlsDiv)
+      .setName('질문 개수')
+      .addDropdown((dropdown) => {
+        for (let i = 1; i <= 5; i++) {
+          dropdown.addOption(i.toString(), `${i}개`);
+        }
+        dropdown.setValue(this.questionCount.toString());
+        dropdown.onChange((value) => {
+          this.questionCount = parseInt(value);
+        });
+      });
+
+    // Question types
+    const typesDiv = controlsDiv.createDiv({ cls: 'socratic-question-types' });
+    typesDiv.createEl('span', { text: '질문 유형: ' });
+
+    QuestionType.all().forEach((type) => {
+      const info = type.getInfo();
+      const label = typesDiv.createEl('label', { cls: 'question-type-toggle' });
+      const checkbox = label.createEl('input', { type: 'checkbox' });
+      checkbox.checked = this.selectedTypes.includes(info.type);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          if (!this.selectedTypes.includes(info.type)) {
+            this.selectedTypes.push(info.type);
+          }
+        } else {
+          const index = this.selectedTypes.indexOf(info.type);
+          if (index > -1) {
+            this.selectedTypes.splice(index, 1);
+          }
+        }
+      });
+      label.createSpan({ text: `${info.icon} ${info.displayText}` });
+    });
+  }
+
+  private renderQuestionArea(container: HTMLElement): void {
+    this.questionContainer = container.createDiv({ cls: 'socratic-question-list' });
+
+    if (!this.session) {
+      this.questionContainer.createDiv({
+        cls: 'socratic-empty-state',
+        text: '"질문 생성" 버튼을 클릭하여 시작하세요.',
+      });
+    }
+  }
+
+  private renderActions(container: HTMLElement): void {
+    this.actionsContainer = container.createDiv({ cls: 'socratic-actions' });
+    this.updateActionButtons();
+  }
+
+  private updateActionButtons(): void {
+    if (!this.actionsContainer) return;
+    this.actionsContainer.empty();
+
+    if (!this.session) {
+      // Initial state: Generate button
+      new ButtonComponent(this.actionsContainer)
+        .setButtonText('🎯 질문 생성')
+        .setCta()
+        .onClick(() => this.generateQuestions());
+    } else {
+      // After questions generated
+      new ButtonComponent(this.actionsContainer)
+        .setButtonText('💬 후속 질문')
+        .onClick(() => this.continueDialogue());
+
+      new ButtonComponent(this.actionsContainer)
+        .setButtonText('💾 대화 저장')
+        .onClick(() => this.saveDialogue());
+
+      new ButtonComponent(this.actionsContainer)
+        .setButtonText('🔄 새로 시작')
+        .onClick(() => this.resetDialogue());
+    }
+  }
+
+  private async generateQuestions(): Promise<void> {
+    if (this.isLoading) return;
+
+    if (this.selectedTypes.length === 0) {
+      new Notice('질문 유형을 하나 이상 선택해주세요.');
+      return;
+    }
+
+    const provider = this.plugin.getCurrentProvider();
+    if (!provider) {
+      new Notice('AI 프로바이더가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.');
+      return;
+    }
+
+    this.setLoading(true);
+
+    try {
+      const useCase = new GenerateQuestionsUseCase(provider);
+      const result = await useCase.execute({
+        noteContent: this.noteContent,
+        questionTypes: this.selectedTypes,
+        intensity: this.selectedIntensity,
+        maxQuestions: this.questionCount,
+      });
+
+      if (result.error) {
+        new Notice(`오류: ${result.error}`);
+        return;
+      }
+
+      // Create session
+      this.session = DialogueSession.create(
+        this.noteId,
+        this.notePath,
+        this.noteContent,
+        this.selectedIntensity
+      );
+
+      // Add questions to session
+      this.session.addQuestions(result.questions);
+
+      // Render questions
+      this.renderQuestions();
+      this.updateActionButtons();
+
+      new Notice(`${result.questions.length}개의 질문이 생성되었습니다.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '질문 생성에 실패했습니다.';
+      new Notice(`오류: ${message}`);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  private async continueDialogue(): Promise<void> {
+    if (this.isLoading || !this.session) return;
+
+    // Check if at least one question has been answered
+    if (this.session.getAnsweredQuestions().length === 0) {
+      new Notice('후속 질문을 생성하려면 먼저 하나 이상의 질문에 답변해주세요.');
+      return;
+    }
+
+    const provider = this.plugin.getCurrentProvider();
+    if (!provider) {
+      new Notice('AI 프로바이더가 설정되지 않았습니다.');
+      return;
+    }
+
+    this.setLoading(true);
+
+    try {
+      const useCase = new ContinueDialogueUseCase(provider);
+      const result = await useCase.execute({
+        session: this.session,
+        maxQuestions: 2,
+      });
+
+      if (result.error) {
+        new Notice(`오류: ${result.error}`);
+        return;
+      }
+
+      // Add new questions to session
+      this.session.addQuestions(result.questions);
+
+      // Re-render questions
+      this.renderQuestions();
+
+      new Notice(`${result.questions.length}개의 후속 질문이 생성되었습니다.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '후속 질문 생성에 실패했습니다.';
+      new Notice(`오류: ${message}`);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  private renderQuestions(): void {
+    if (!this.questionContainer || !this.session) return;
+
+    this.questionContainer.empty();
+    this.responseInputs.clear();
+
+    const questions = this.session.questions;
+
+    questions.forEach((question, index) => {
+      this.renderQuestionItem(question, index);
+    });
+  }
+
+  private renderQuestionItem(question: Question, index: number): void {
+    if (!this.questionContainer || !this.session) return;
+
+    const typeClass = `question-type-${question.type.getValue().toLowerCase()}`;
+    const itemDiv = this.questionContainer.createDiv({
+      cls: `socratic-question-item ${typeClass}`,
+    });
+
+    // Question type badge
+    itemDiv.createDiv({
+      cls: 'question-type',
+      text: `${question.getTypeIcon()} ${question.getTypeDisplayText()}`,
+    });
+
+    // Question content
+    itemDiv.createDiv({
+      cls: 'question-content',
+      text: `Q${index + 1}. ${question.content}`,
+    });
+
+    // Response area
+    const existingResponse = this.session.getResponse(question.id);
+
+    if (existingResponse) {
+      // Show saved response
+      const responseDiv = itemDiv.createDiv({ cls: 'socratic-response-saved' });
+      responseDiv.createDiv({ cls: 'response-label', text: '나의 답변:' });
+      responseDiv.createDiv({ text: existingResponse.content });
+    } else {
+      // Show input area
+      const responseArea = itemDiv.createDiv({ cls: 'socratic-response-area' });
+
+      const textArea = new TextAreaComponent(responseArea);
+      textArea.setPlaceholder('이 질문에 대한 생각을 적어보세요...');
+      textArea.inputEl.rows = 3;
+      this.responseInputs.set(question.id, textArea);
+
+      const saveBtn = new ButtonComponent(responseArea);
+      saveBtn.setButtonText('답변 저장');
+      saveBtn.onClick(() => this.saveResponse(question.id));
+    }
+  }
+
+  private saveResponse(questionId: string): void {
+    if (!this.session) return;
+
+    const textArea = this.responseInputs.get(questionId);
+    if (!textArea) return;
+
+    const response = textArea.getValue().trim();
+    if (!response) {
+      new Notice('답변을 입력해주세요.');
+      return;
+    }
+
+    try {
+      this.session.addResponse(questionId, response);
+      this.renderQuestions();
+      new Notice('답변이 저장되었습니다.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '답변 저장에 실패했습니다.';
+      new Notice(`오류: ${message}`);
+    }
+  }
+
+  private async saveDialogue(): Promise<void> {
+    if (!this.session) return;
+
+    try {
+      const repository = new ObsidianDialogueRepository(this.app);
+      await repository.save(this.session);
+      new Notice('대화가 노트에 저장되었습니다.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '대화 저장에 실패했습니다.';
+      new Notice(`오류: ${message}`);
+    }
+  }
+
+  private resetDialogue(): void {
+    this.session = null;
+    this.responseInputs.clear();
+
+    if (this.questionContainer) {
+      this.questionContainer.empty();
+      this.questionContainer.createDiv({
+        cls: 'socratic-empty-state',
+        text: '"질문 생성" 버튼을 클릭하여 시작하세요.',
+      });
+    }
+
+    this.updateActionButtons();
+    new Notice('대화가 초기화되었습니다.');
+  }
+
+  private setLoading(loading: boolean): void {
+    this.isLoading = loading;
+
+    if (this.questionContainer) {
+      if (loading) {
+        this.questionContainer.empty();
+        const loadingDiv = this.questionContainer.createDiv({ cls: 'socratic-loading' });
+        loadingDiv.createSpan({ cls: 'loading-spinner', text: '⏳' });
+        loadingDiv.createSpan({ text: '질문을 생성하고 있습니다...' });
+      }
+    }
+  }
+}
