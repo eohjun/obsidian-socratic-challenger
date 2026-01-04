@@ -8,8 +8,7 @@ import { DialogueSession, type DialogueSessionData } from '../../domain/entities
 import type { IDialogueRepository } from '../../domain/interfaces/dialogue-repository.interface';
 
 const DIALOGUE_SECTION_MARKER = '## Socratic Dialogue';
-const DATA_BLOCK_START = '%%SOCRATIC_DATA_START%%';
-const DATA_BLOCK_END = '%%SOCRATIC_DATA_END%%';
+const DATA_BLOCK_PREFIX = 'SOCRATIC_DATA:';
 
 export class ObsidianDialogueRepository implements IDialogueRepository {
   constructor(private readonly app: App) {}
@@ -39,7 +38,8 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
     // Exclude noteContext from saved data to reduce file size
     const sessionData = JSON.stringify(session.toData({ excludeNoteContext: true }));
 
-    const dataBlock = `\n${DATA_BLOCK_START}\n${sessionData}\n${DATA_BLOCK_END}\n`;
+    // Use proper Obsidian comment format: %%content%%
+    const dataBlock = `\n%%${DATA_BLOCK_PREFIX}${sessionData}%%\n`;
 
     // Check if dialogue section already exists
     const sectionIndex = content.indexOf(DIALOGUE_SECTION_MARKER);
@@ -102,14 +102,17 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
   private parseSessionsFromContent(content: string, noteContext: string): DialogueSession[] {
     const sessions: DialogueSession[] = [];
 
-    // Find all data blocks
-    const regex = new RegExp(
-      `${DATA_BLOCK_START}\\n([\\s\\S]*?)\\n${DATA_BLOCK_END}`,
+    // Find all data blocks with proper Obsidian comment format: %%SOCRATIC_DATA:{json}%%
+    // Also support legacy format for backward compatibility
+    const newFormatRegex = new RegExp(
+      `%%${DATA_BLOCK_PREFIX}([\\s\\S]*?)%%`,
       'g'
     );
+    const legacyRegex = /%%SOCRATIC_DATA_START%%\n([\s\S]*?)\n%%SOCRATIC_DATA_END%%/g;
 
+    // Try new format first
     let match;
-    while ((match = regex.exec(content)) !== null) {
+    while ((match = newFormatRegex.exec(content)) !== null) {
       try {
         const dataStr = match[1].trim();
         const data: DialogueSessionData = JSON.parse(dataStr);
@@ -118,6 +121,19 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
       } catch {
         // Skip invalid data blocks
         console.warn('Failed to parse dialogue session data');
+      }
+    }
+
+    // If no sessions found, try legacy format
+    if (sessions.length === 0) {
+      while ((match = legacyRegex.exec(content)) !== null) {
+        try {
+          const dataStr = match[1].trim();
+          const data: DialogueSessionData = JSON.parse(dataStr);
+          sessions.push(DialogueSession.fromData(data, noteContext));
+        } catch {
+          console.warn('Failed to parse legacy dialogue session data');
+        }
       }
     }
 
@@ -131,16 +147,25 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
     for (const file of files) {
       const content = await this.app.vault.read(file);
       if (content.includes(sessionId)) {
-        // Remove the session data block containing this ID
-        const regex = new RegExp(
-          `${DATA_BLOCK_START}\\n[\\s\\S]*?"id"\\s*:\\s*"${sessionId}"[\\s\\S]*?\\n${DATA_BLOCK_END}`,
+        // Remove the session data block containing this ID (new format)
+        const newFormatRegex = new RegExp(
+          `%%${DATA_BLOCK_PREFIX}[\\s\\S]*?"id"\\s*:\\s*"${sessionId}"[\\s\\S]*?%%`,
+          'g'
+        );
+        // Legacy format
+        const legacyRegex = new RegExp(
+          `%%SOCRATIC_DATA_START%%\\n[\\s\\S]*?"id"\\s*:\\s*"${sessionId}"[\\s\\S]*?\\n%%SOCRATIC_DATA_END%%`,
           'g'
         );
 
-        const updatedContent = content.replace(regex, '');
+        let updatedContent = content.replace(newFormatRegex, '');
+        updatedContent = updatedContent.replace(legacyRegex, '');
 
         // If no sessions remain, remove the entire dialogue section
-        if (!updatedContent.includes(DATA_BLOCK_START)) {
+        const hasNewFormat = updatedContent.includes(`%%${DATA_BLOCK_PREFIX}`);
+        const hasLegacyFormat = updatedContent.includes('%%SOCRATIC_DATA_START%%');
+
+        if (!hasNewFormat && !hasLegacyFormat) {
           const sectionRegex = new RegExp(
             `\\n*---\\n*\\n*${DIALOGUE_SECTION_MARKER}[\\s\\S]*$`,
             ''
