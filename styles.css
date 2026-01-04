@@ -247,6 +247,122 @@
   gap: 12px;
 }
 
+/* Insights Area */
+.socratic-insights-area {
+  margin-bottom: 20px;
+}
+
+.socratic-insights-area .insights-header {
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.insights-section {
+  margin-bottom: 20px;
+}
+
+.insights-section h4 {
+  margin: 0 0 12px 0;
+  color: var(--text-muted);
+  font-size: 0.95em;
+}
+
+.insight-item {
+  background-color: var(--background-secondary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.insight-item.insight-discovery {
+  border-left-color: #f1c40f;
+}
+
+.insight-item.insight-perspective {
+  border-left-color: #3498db;
+}
+
+.insight-item.insight-question {
+  border-left-color: #9b59b6;
+}
+
+.insight-item.insight-connection {
+  border-left-color: #2ecc71;
+}
+
+.insight-item .insight-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-normal);
+}
+
+.insight-item .insight-description {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.note-topic-item {
+  background-color: var(--background-secondary);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border-left: 3px solid #e67e22;
+}
+
+.note-topic-item .topic-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-normal);
+}
+
+.note-topic-item .topic-description {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.note-topic-item .topic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.note-topic-item .topic-tag {
+  background-color: var(--background-primary-alt);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  color: var(--text-accent);
+}
+
+.unanswered-questions,
+.note-enhancements {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.unanswered-questions li,
+.note-enhancements li {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Enable text selection for insights */
+.socratic-challenger-modal .insight-item,
+.socratic-challenger-modal .note-topic-item,
+.socratic-challenger-modal .unanswered-questions,
+.socratic-challenger-modal .note-enhancements {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
 /* Settings */
 .socratic-settings-section {
   margin-bottom: 24px;

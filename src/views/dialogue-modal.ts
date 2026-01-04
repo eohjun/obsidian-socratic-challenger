@@ -11,6 +11,7 @@ import { QuestionType, QuestionTypeEnum } from '../core/domain/value-objects/que
 import { IntensityLevel, IntensityLevelEnum } from '../core/domain/value-objects/intensity-level';
 import { GenerateQuestionsUseCase } from '../core/application/use-cases/generate-questions';
 import { ContinueDialogueUseCase } from '../core/application/use-cases/continue-dialogue';
+import { ExtractInsightsUseCase, type ExtractInsightsOutput } from '../core/application/use-cases/extract-insights';
 import { ObsidianDialogueRepository } from '../core/adapters/obsidian/dialogue-repository';
 
 export class DialogueModal extends Modal {
@@ -27,7 +28,9 @@ export class DialogueModal extends Modal {
   private responseInputs: Map<string, TextAreaComponent> = new Map();
   private questionContainer: HTMLElement | null = null;
   private actionsContainer: HTMLElement | null = null;
+  private insightsContainer: HTMLElement | null = null;
   private isLoading = false;
+  private extractedInsights: ExtractInsightsOutput | null = null;
 
   constructor(
     app: App,
@@ -58,6 +61,7 @@ export class DialogueModal extends Modal {
     this.renderNoteContext(contentEl);
     this.renderControls(contentEl);
     this.renderQuestionArea(contentEl);
+    this.renderInsightsArea(contentEl);
     this.renderActions(contentEl);
 
     // Check for previous dialogue
@@ -155,6 +159,11 @@ export class DialogueModal extends Modal {
     }
   }
 
+  private renderInsightsArea(container: HTMLElement): void {
+    this.insightsContainer = container.createDiv({ cls: 'socratic-insights-area' });
+    // Initially hidden, shown after extraction
+  }
+
   private renderActions(container: HTMLElement): void {
     this.actionsContainer = container.createDiv({ cls: 'socratic-actions' });
     this.updateActionButtons();
@@ -175,6 +184,10 @@ export class DialogueModal extends Modal {
       new ButtonComponent(this.actionsContainer)
         .setButtonText('💬 후속 질문')
         .onClick(() => this.continueDialogue());
+
+      new ButtonComponent(this.actionsContainer)
+        .setButtonText('💡 인사이트 추출')
+        .onClick(() => this.extractInsights());
 
       new ButtonComponent(this.actionsContainer)
         .setButtonText('💾 대화 저장')
@@ -282,6 +295,121 @@ export class DialogueModal extends Modal {
     } finally {
       this.setLoading(false);
     }
+  }
+
+  private async extractInsights(): Promise<void> {
+    if (this.isLoading || !this.session) return;
+
+    // Check if at least one question has been answered
+    if (this.session.getAnsweredQuestions().length === 0) {
+      new Notice('인사이트를 추출하려면 먼저 하나 이상의 질문에 답변해주세요.');
+      return;
+    }
+
+    const provider = this.plugin.getCurrentProvider();
+    if (!provider) {
+      new Notice('AI 프로바이더가 설정되지 않았습니다.');
+      return;
+    }
+
+    this.setLoading(true, '인사이트를 추출하고 있습니다...');
+
+    try {
+      const useCase = new ExtractInsightsUseCase(provider);
+      const result = await useCase.execute({
+        session: this.session,
+      });
+
+      if (result.error) {
+        new Notice(`오류: ${result.error}`);
+        return;
+      }
+
+      this.extractedInsights = result;
+      this.renderInsights();
+
+      const totalItems = result.insights.length + result.noteTopics.length;
+      new Notice(`${totalItems}개의 인사이트와 주제를 추출했습니다.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '인사이트 추출에 실패했습니다.';
+      new Notice(`오류: ${message}`);
+    } finally {
+      this.setLoading(false);
+    }
+  }
+
+  private renderInsights(): void {
+    if (!this.insightsContainer || !this.extractedInsights) return;
+
+    this.insightsContainer.empty();
+
+    const { insights, noteTopics, unansweredQuestions, noteEnhancements } = this.extractedInsights;
+
+    // Header
+    this.insightsContainer.createEl('h3', { text: '💡 추출된 인사이트', cls: 'insights-header' });
+
+    // Insights section
+    if (insights.length > 0) {
+      const insightsDiv = this.insightsContainer.createDiv({ cls: 'insights-section' });
+      insightsDiv.createEl('h4', { text: '🔍 핵심 인사이트' });
+
+      insights.forEach((insight) => {
+        const itemDiv = insightsDiv.createDiv({ cls: `insight-item insight-${insight.category}` });
+        const categoryIcon = this.getCategoryIcon(insight.category);
+        itemDiv.createDiv({ cls: 'insight-title', text: `${categoryIcon} ${insight.title}` });
+        itemDiv.createDiv({ cls: 'insight-description', text: insight.description });
+      });
+    }
+
+    // Note topics section
+    if (noteTopics.length > 0) {
+      const topicsDiv = this.insightsContainer.createDiv({ cls: 'insights-section' });
+      topicsDiv.createEl('h4', { text: '📝 새 노트 주제 제안' });
+
+      noteTopics.forEach((topic) => {
+        const itemDiv = topicsDiv.createDiv({ cls: 'note-topic-item' });
+        itemDiv.createDiv({ cls: 'topic-title', text: topic.title });
+        itemDiv.createDiv({ cls: 'topic-description', text: topic.description });
+        if (topic.suggestedTags.length > 0) {
+          const tagsDiv = itemDiv.createDiv({ cls: 'topic-tags' });
+          topic.suggestedTags.forEach((tag) => {
+            tagsDiv.createSpan({ cls: 'topic-tag', text: `#${tag}` });
+          });
+        }
+      });
+    }
+
+    // Unanswered questions section
+    if (unansweredQuestions.length > 0) {
+      const questionsDiv = this.insightsContainer.createDiv({ cls: 'insights-section' });
+      questionsDiv.createEl('h4', { text: '❓ 미해결 질문' });
+
+      const ul = questionsDiv.createEl('ul', { cls: 'unanswered-questions' });
+      unansweredQuestions.forEach((q) => {
+        ul.createEl('li', { text: q });
+      });
+    }
+
+    // Note enhancements section
+    if (noteEnhancements.length > 0) {
+      const enhancementsDiv = this.insightsContainer.createDiv({ cls: 'insights-section' });
+      enhancementsDiv.createEl('h4', { text: '✨ 노트 보완 제안' });
+
+      const ul = enhancementsDiv.createEl('ul', { cls: 'note-enhancements' });
+      noteEnhancements.forEach((e) => {
+        ul.createEl('li', { text: e });
+      });
+    }
+  }
+
+  private getCategoryIcon(category: string): string {
+    const icons: Record<string, string> = {
+      discovery: '💡',
+      perspective: '🔭',
+      question: '❓',
+      connection: '🔗',
+    };
+    return icons[category] || '💡';
   }
 
   private renderQuestions(): void {
@@ -424,7 +552,7 @@ export class DialogueModal extends Modal {
     new Notice('대화가 초기화되었습니다.');
   }
 
-  private setLoading(loading: boolean): void {
+  private setLoading(loading: boolean, message?: string): void {
     this.isLoading = loading;
 
     if (this.questionContainer) {
@@ -432,7 +560,7 @@ export class DialogueModal extends Modal {
         this.questionContainer.empty();
         const loadingDiv = this.questionContainer.createDiv({ cls: 'socratic-loading' });
         loadingDiv.createSpan({ cls: 'loading-spinner', text: '⏳' });
-        loadingDiv.createSpan({ text: '질문을 생성하고 있습니다...' });
+        loadingDiv.createSpan({ text: message || '질문을 생성하고 있습니다...' });
       }
     }
   }
