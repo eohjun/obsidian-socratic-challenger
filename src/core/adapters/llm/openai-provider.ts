@@ -72,12 +72,23 @@ export class OpenAIProvider extends BaseProvider {
       content: msg.content,
     }));
 
-    const requestBody: OpenAIRequest = {
+    // Check if this is a reasoning model (gpt-5.x, o1, o3)
+    const isReasoningModel = this.modelId.startsWith('gpt-5') ||
+                             this.modelId.startsWith('o1') ||
+                             this.modelId.startsWith('o3');
+
+    const requestBody: Record<string, unknown> = {
       model: this.modelId,
       messages: openaiMessages,
-      max_tokens: options?.maxTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
     };
+
+    // Reasoning models use max_completion_tokens instead of max_tokens
+    if (isReasoningModel) {
+      requestBody.max_completion_tokens = options?.maxTokens ?? 4096;
+    } else {
+      requestBody.max_tokens = options?.maxTokens ?? 4096;
+    }
 
     if (options?.topP !== undefined) {
       requestBody.top_p = options.topP;
@@ -86,6 +97,13 @@ export class OpenAIProvider extends BaseProvider {
     if (options?.stopSequences) {
       requestBody.stop = options.stopSequences;
     }
+
+    // Debug logging
+    console.log('[Socratic Challenger] OpenAI API Request:', {
+      model: this.modelId,
+      isReasoningModel,
+      messagesCount: openaiMessages.length,
+    });
 
     try {
       const response = await this.makeRequest<OpenAIResponse>({
