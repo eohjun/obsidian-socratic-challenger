@@ -31,6 +31,27 @@ export class GrokProvider extends BaseProvider {
   readonly providerType: AIProviderType = 'grok';
   readonly name = 'xAI Grok';
 
+  async testApiKey(apiKey: string): Promise<boolean> {
+    try {
+      const response = await this.makeRequest<GrokResponse>({
+        url: `${this.config.endpoint}/chat/completions`,
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.config.defaultModel,
+          messages: [{ role: 'user', content: 'Hello' }],
+          max_tokens: 10,
+        }),
+      });
+      return !response.error && response.choices && response.choices.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse> {
     if (!this.isAvailable()) {
       return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };

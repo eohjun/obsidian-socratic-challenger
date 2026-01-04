@@ -89,30 +89,9 @@ export abstract class BaseProvider implements ILLMProvider {
   abstract generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse>;
 
   /**
-   * Test API key validity with a minimal request
+   * Test API key validity - must be implemented by each provider
    */
-  async testApiKey(): Promise<{ success: boolean; message: string }> {
-    if (!this.apiKey) {
-      return { success: false, message: 'API 키가 입력되지 않았습니다.' };
-    }
-
-    try {
-      const response = await this.simpleGenerate('Hi', undefined, { maxTokens: 5 });
-      if (response.success) {
-        return { success: true, message: 'API 키가 유효합니다!' };
-      }
-      return { success: false, message: response.error ?? '알 수 없는 오류' };
-    } catch (error) {
-      // Handle both Error objects and normalized error objects from makeRequest
-      if (error instanceof Error) {
-        return { success: false, message: error.message };
-      }
-      if (typeof error === 'object' && error !== null && 'message' in error) {
-        return { success: false, message: (error as { message: string }).message };
-      }
-      return { success: false, message: '알 수 없는 오류가 발생했습니다.' };
-    }
-  }
+  abstract testApiKey(apiKey: string): Promise<boolean>;
 
   async simpleGenerate(
     userPrompt: string,

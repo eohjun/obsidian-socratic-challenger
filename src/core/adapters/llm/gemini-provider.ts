@@ -33,6 +33,36 @@ export class GeminiProvider extends BaseProvider {
   readonly providerType: AIProviderType = 'gemini';
   readonly name = 'Google Gemini';
 
+  async testApiKey(apiKey: string): Promise<boolean> {
+    try {
+      const model = this.config.defaultModel;
+      const url = `${this.config.endpoint}/models/${model}:generateContent?key=${apiKey}`;
+
+      const response = await this.makeRequest<GeminiResponse>({
+        url,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: 'Hello' }],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 10,
+          },
+        }),
+      });
+
+      return !response.error && !!response.candidates && response.candidates.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse> {
     if (!this.isAvailable()) {
       return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };

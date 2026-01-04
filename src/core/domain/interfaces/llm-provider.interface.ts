@@ -73,5 +73,5 @@ export interface ILLMProvider {
   /**
    * API 키 유효성 테스트
    */
-  testApiKey(): Promise<{ success: boolean; message: string }>;
+  testApiKey(apiKey: string): Promise<boolean>;
 }

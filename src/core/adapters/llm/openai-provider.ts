@@ -31,6 +31,37 @@ export class OpenAIProvider extends BaseProvider {
   readonly providerType: AIProviderType = 'openai';
   readonly name = 'OpenAI';
 
+  async testApiKey(apiKey: string): Promise<boolean> {
+    try {
+      const model = this.config.defaultModel;
+      const isReasoningModel = model.startsWith('gpt-5') || model.startsWith('o1') || model.startsWith('o3');
+
+      const requestBody: Record<string, unknown> = {
+        model,
+        messages: [{ role: 'user', content: 'Hello' }],
+      };
+
+      if (isReasoningModel) {
+        requestBody.max_completion_tokens = 10;
+      } else {
+        requestBody.max_tokens = 10;
+      }
+
+      const response = await this.makeRequest<OpenAIResponse>({
+        url: `${this.config.endpoint}/chat/completions`,
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      return !response.error && response.choices && response.choices.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
   async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse> {
     if (!this.isAvailable()) {
       return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };

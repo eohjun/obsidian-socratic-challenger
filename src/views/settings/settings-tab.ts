@@ -66,8 +66,15 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
           .setButtonText('테스트')
           .onClick(async () => {
             const provider = this.plugin.getCurrentProvider();
+            const apiKey = this.plugin.settings.ai.apiKeys[currentProvider];
+
             if (!provider) {
               new Notice('프로바이더를 찾을 수 없습니다.');
+              return;
+            }
+
+            if (!apiKey) {
+              new Notice('API 키를 먼저 입력해주세요.');
               return;
             }
 
@@ -75,11 +82,11 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
             button.setButtonText('테스트 중...');
 
             try {
-              const result = await provider.testApiKey();
-              if (result.success) {
-                new Notice(`✅ ${result.message}`);
+              const isValid = await provider.testApiKey(apiKey);
+              if (isValid) {
+                new Notice('✅ API 키가 유효합니다!');
               } else {
-                new Notice(`❌ ${result.message}`);
+                new Notice('❌ API 키가 유효하지 않습니다.');
               }
             } catch (error) {
               const message = error instanceof Error ? error.message : '알 수 없는 오류';

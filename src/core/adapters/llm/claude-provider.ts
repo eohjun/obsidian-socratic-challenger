@@ -31,6 +31,28 @@ export class ClaudeProvider extends BaseProvider {
   readonly name = 'Anthropic Claude';
   private readonly API_VERSION = '2023-06-01';
 
+  async testApiKey(apiKey: string): Promise<boolean> {
+    try {
+      const response = await this.makeRequest<ClaudeResponse>({
+        url: `${this.config.endpoint}/messages`,
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': this.API_VERSION,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.config.defaultModel,
+          messages: [{ role: 'user', content: 'Hello' }],
+          max_tokens: 10,
+        }),
+      });
+      return !response.error && !!response.content;
+    } catch {
+      return false;
+    }
+  }
+
   async generate(messages: LLMMessage[], options?: LLMGenerateOptions): Promise<LLMResponse> {
     if (!this.isAvailable()) {
       return { success: false, content: '', error: 'API 키가 설정되지 않았습니다.' };
