@@ -285,6 +285,71 @@ export class DialogueSession {
       lines.push('');
     });
 
+    // Add extracted insights if present
+    if (this._extractedInsights) {
+      lines.push('## 💡 추출된 인사이트');
+      lines.push('');
+
+      // Key insights
+      if (this._extractedInsights.insights.length > 0) {
+        lines.push('### 🔍 핵심 인사이트');
+        lines.push('');
+        this._extractedInsights.insights.forEach((insight) => {
+          const icon = this.getCategoryIcon(insight.category);
+          lines.push(`#### ${icon} ${insight.title}`);
+          lines.push('');
+          lines.push(insight.description);
+          lines.push('');
+        });
+      }
+
+      // Note topics
+      if (this._extractedInsights.noteTopics.length > 0) {
+        lines.push('### 📝 새 노트 주제 제안');
+        lines.push('');
+        this._extractedInsights.noteTopics.forEach((topic) => {
+          lines.push(`#### ${topic.title}`);
+          lines.push('');
+          lines.push(topic.description);
+          if (topic.suggestedTags.length > 0) {
+            lines.push('');
+            lines.push(`**태그**: ${topic.suggestedTags.map(t => `#${t}`).join(' ')}`);
+          }
+          lines.push('');
+        });
+      }
+
+      // Unanswered questions
+      if (this._extractedInsights.unansweredQuestions.length > 0) {
+        lines.push('### ❓ 미해결 질문');
+        lines.push('');
+        this._extractedInsights.unansweredQuestions.forEach((q) => {
+          lines.push(`- ${q}`);
+        });
+        lines.push('');
+      }
+
+      // Note enhancements
+      if (this._extractedInsights.noteEnhancements.length > 0) {
+        lines.push('### ✨ 노트 보완 제안');
+        lines.push('');
+        this._extractedInsights.noteEnhancements.forEach((e) => {
+          lines.push(`- ${e}`);
+        });
+        lines.push('');
+      }
+    }
+
     return lines.join('\n');
+  }
+
+  private getCategoryIcon(category: string): string {
+    const icons: Record<string, string> = {
+      discovery: '💡',
+      perspective: '🔭',
+      question: '❓',
+      connection: '🔗',
+    };
+    return icons[category] || '💡';
   }
 }
