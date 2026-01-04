@@ -51,6 +51,14 @@ export abstract class BaseProvider implements ILLMProvider {
    * Handle errors and return normalized response
    */
   protected handleError(error: unknown): LLMResponse {
+    // Check if already normalized (from makeRequest throwing normalizeError result)
+    if (typeof error === 'object' && error !== null && 'message' in error && 'code' in error) {
+      return {
+        success: false,
+        content: '',
+        error: (error as { message: string }).message,
+      };
+    }
     const normalized = this.normalizeError(error);
     return {
       success: false,
