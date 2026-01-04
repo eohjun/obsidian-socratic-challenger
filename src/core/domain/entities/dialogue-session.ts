@@ -16,7 +16,7 @@ export interface DialogueSessionData {
   id: string;
   noteId: string;
   notePath: string;
-  noteContext: string;
+  noteContext?: string; // Optional - not saved to file, reconstructed on load
   questions: QuestionData[];
   responses: DialogueResponse[];
   intensity: IntensityLevelEnum;
@@ -62,12 +62,12 @@ export class DialogueSession {
     );
   }
 
-  static fromData(data: DialogueSessionData): DialogueSession {
+  static fromData(data: DialogueSessionData, noteContext?: string): DialogueSession {
     const session = new DialogueSession(
       data.id,
       data.noteId,
       data.notePath,
-      data.noteContext,
+      noteContext ?? data.noteContext ?? '',
       IntensityLevel.create(data.intensity),
       new Date(data.createdAt)
     );
@@ -194,18 +194,24 @@ export class DialogueSession {
   }
 
   // Serialization
-  toData(): DialogueSessionData {
-    return {
+  toData(options?: { excludeNoteContext?: boolean }): DialogueSessionData {
+    const data: DialogueSessionData = {
       id: this._id,
       noteId: this._noteId,
       notePath: this._notePath,
-      noteContext: this._noteContext,
       questions: this._questions.map((q) => q.toData()),
       responses: Array.from(this._responses.values()),
       intensity: this._intensity.getValue(),
       createdAt: this._createdAt.getTime(),
       updatedAt: this._updatedAt.getTime(),
     };
+
+    // Only include noteContext if not excluded (for storage, we exclude it)
+    if (!options?.excludeNoteContext) {
+      data.noteContext = this._noteContext;
+    }
+
+    return data;
   }
 
   toMarkdown(): string {

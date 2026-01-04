@@ -36,7 +36,8 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
 
   private updateContentWithSession(content: string, session: DialogueSession): string {
     const sessionMarkdown = session.toMarkdown();
-    const sessionData = JSON.stringify(session.toData());
+    // Exclude noteContext from saved data to reduce file size
+    const sessionData = JSON.stringify(session.toData({ excludeNoteContext: true }));
 
     const dataBlock = `\n${DATA_BLOCK_START}\n${sessionData}\n${DATA_BLOCK_END}\n`;
 
@@ -76,13 +77,29 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
 
     try {
       const content = await this.app.vault.read(file);
-      return this.parseSessionsFromContent(content);
+      // Extract note content without the Socratic Dialogue section for context
+      const noteContext = this.extractNoteContext(content);
+      return this.parseSessionsFromContent(content, noteContext);
     } catch {
       return [];
     }
   }
 
-  private parseSessionsFromContent(content: string): DialogueSession[] {
+  private extractNoteContext(content: string): string {
+    // Remove the Socratic Dialogue section to get the original note content
+    const sectionIndex = content.indexOf(DIALOGUE_SECTION_MARKER);
+    if (sectionIndex === -1) {
+      return content;
+    }
+    // Find the separator before the section
+    const separatorIndex = content.lastIndexOf('---', sectionIndex);
+    if (separatorIndex > 0) {
+      return content.substring(0, separatorIndex).trim();
+    }
+    return content.substring(0, sectionIndex).trim();
+  }
+
+  private parseSessionsFromContent(content: string, noteContext: string): DialogueSession[] {
     const sessions: DialogueSession[] = [];
 
     // Find all data blocks
@@ -96,7 +113,8 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
       try {
         const dataStr = match[1].trim();
         const data: DialogueSessionData = JSON.parse(dataStr);
-        sessions.push(DialogueSession.fromData(data));
+        // Pass noteContext to reconstruct the session with context
+        sessions.push(DialogueSession.fromData(data, noteContext));
       } catch {
         // Skip invalid data blocks
         console.warn('Failed to parse dialogue session data');
