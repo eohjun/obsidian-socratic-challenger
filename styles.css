@@ -116,10 +116,31 @@
   margin-top: 8px;
 }
 
+.socratic-response-saved .response-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .socratic-response-saved .response-label {
   font-size: 0.8em;
   color: var(--text-muted);
-  margin-bottom: 4px;
+}
+
+.socratic-response-saved .response-content {
+  white-space: pre-wrap;
+}
+
+.response-edit-btn {
+  font-size: 0.75em;
+  padding: 2px 8px;
+}
+
+.response-btn-container {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .socratic-actions {

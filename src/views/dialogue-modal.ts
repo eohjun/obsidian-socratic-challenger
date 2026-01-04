@@ -321,23 +321,54 @@ export class DialogueModal extends Modal {
     const existingResponse = this.session.getResponse(question.id);
 
     if (existingResponse) {
-      // Show saved response
+      // Show saved response with edit option
       const responseDiv = itemDiv.createDiv({ cls: 'socratic-response-saved' });
-      responseDiv.createDiv({ cls: 'response-label', text: '나의 답변:' });
-      responseDiv.createDiv({ text: existingResponse.content });
+
+      const headerDiv = responseDiv.createDiv({ cls: 'response-header' });
+      headerDiv.createSpan({ cls: 'response-label', text: '나의 답변:' });
+
+      const editBtn = new ButtonComponent(headerDiv);
+      editBtn.setButtonText('✏️ 수정');
+      editBtn.setClass('response-edit-btn');
+      editBtn.onClick(() => this.showEditMode(question.id, existingResponse.content, itemDiv, index));
+
+      responseDiv.createDiv({ cls: 'response-content', text: existingResponse.content });
     } else {
       // Show input area
-      const responseArea = itemDiv.createDiv({ cls: 'socratic-response-area' });
-
-      const textArea = new TextAreaComponent(responseArea);
-      textArea.setPlaceholder('이 질문에 대한 생각을 적어보세요...');
-      textArea.inputEl.rows = 3;
-      this.responseInputs.set(question.id, textArea);
-
-      const saveBtn = new ButtonComponent(responseArea);
-      saveBtn.setButtonText('답변 저장');
-      saveBtn.onClick(() => this.saveResponse(question.id));
+      this.renderResponseInput(question.id, '', itemDiv);
     }
+  }
+
+  private renderResponseInput(questionId: string, initialValue: string, container: HTMLElement): void {
+    // Remove existing response area if any
+    const existingArea = container.querySelector('.socratic-response-area');
+    if (existingArea) existingArea.remove();
+    const existingSaved = container.querySelector('.socratic-response-saved');
+    if (existingSaved) existingSaved.remove();
+
+    const responseArea = container.createDiv({ cls: 'socratic-response-area' });
+
+    const textArea = new TextAreaComponent(responseArea);
+    textArea.setPlaceholder('이 질문에 대한 생각을 적어보세요...');
+    textArea.setValue(initialValue);
+    textArea.inputEl.rows = 3;
+    this.responseInputs.set(questionId, textArea);
+
+    const btnContainer = responseArea.createDiv({ cls: 'response-btn-container' });
+
+    const saveBtn = new ButtonComponent(btnContainer);
+    saveBtn.setButtonText(initialValue ? '수정 저장' : '답변 저장');
+    saveBtn.onClick(() => this.saveResponse(questionId));
+
+    if (initialValue) {
+      const cancelBtn = new ButtonComponent(btnContainer);
+      cancelBtn.setButtonText('취소');
+      cancelBtn.onClick(() => this.renderQuestions());
+    }
+  }
+
+  private showEditMode(questionId: string, currentContent: string, container: HTMLElement, _index: number): void {
+    this.renderResponseInput(questionId, currentContent, container);
   }
 
   private saveResponse(questionId: string): void {
@@ -352,10 +383,12 @@ export class DialogueModal extends Modal {
       return;
     }
 
+    const isEdit = !!this.session.getResponse(questionId);
+
     try {
       this.session.addResponse(questionId, response);
       this.renderQuestions();
-      new Notice('답변이 저장되었습니다.');
+      new Notice(isEdit ? '답변이 수정되었습니다.' : '답변이 저장되었습니다.');
     } catch (error) {
       const message = error instanceof Error ? error.message : '답변 저장에 실패했습니다.';
       new Notice(`오류: ${message}`);
