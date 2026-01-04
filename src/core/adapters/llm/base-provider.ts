@@ -95,8 +95,14 @@ export abstract class BaseProvider implements ILLMProvider {
       }
       return { success: false, message: response.error ?? '알 수 없는 오류' };
     } catch (error) {
-      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-      return { success: false, message };
+      // Handle both Error objects and normalized error objects from makeRequest
+      if (error instanceof Error) {
+        return { success: false, message: error.message };
+      }
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        return { success: false, message: (error as { message: string }).message };
+      }
+      return { success: false, message: '알 수 없는 오류가 발생했습니다.' };
     }
   }
 
