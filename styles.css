@@ -49,6 +49,31 @@
   padding: 0;
 }
 
+.socratic-question-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.question-type-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.question-type-toggle:hover {
+  background-color: var(--background-secondary);
+}
+
+.question-type-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
 .socratic-question-list {
   margin-bottom: 20px;
 }
