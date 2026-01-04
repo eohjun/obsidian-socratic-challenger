@@ -12,6 +12,26 @@ export interface DialogueResponse {
   createdAt: number;
 }
 
+export interface InsightData {
+  title: string;
+  description: string;
+  category: 'discovery' | 'perspective' | 'question' | 'connection';
+}
+
+export interface NoteTopicData {
+  title: string;
+  description: string;
+  suggestedTags: string[];
+}
+
+export interface ExtractedInsightsData {
+  insights: InsightData[];
+  noteTopics: NoteTopicData[];
+  unansweredQuestions: string[];
+  noteEnhancements: string[];
+  extractedAt: number;
+}
+
 export interface DialogueSessionData {
   id: string;
   noteId: string;
@@ -20,6 +40,7 @@ export interface DialogueSessionData {
   questions: QuestionData[];
   responses: DialogueResponse[];
   intensity: IntensityLevelEnum;
+  extractedInsights?: ExtractedInsightsData; // Optional - only present if insights were extracted
   createdAt: number;
   updatedAt: number;
 }
@@ -33,6 +54,7 @@ export interface DialogueEntry {
 export class DialogueSession {
   private _questions: Question[] = [];
   private _responses: Map<string, DialogueResponse> = new Map();
+  private _extractedInsights: ExtractedInsightsData | null = null;
   private _updatedAt: Date;
 
   private constructor(
@@ -82,6 +104,11 @@ export class DialogueSession {
       session._responses.set(r.questionId, r);
     });
 
+    // Restore extracted insights if present
+    if (data.extractedInsights) {
+      session._extractedInsights = data.extractedInsights;
+    }
+
     session._updatedAt = new Date(data.updatedAt);
 
     return session;
@@ -124,6 +151,10 @@ export class DialogueSession {
     return this._updatedAt;
   }
 
+  get extractedInsights(): ExtractedInsightsData | null {
+    return this._extractedInsights;
+  }
+
   // Mutations
   addQuestion(question: Question): void {
     this._questions.push(question);
@@ -155,6 +186,11 @@ export class DialogueSession {
 
   setIntensity(intensity: IntensityLevel): void {
     this._intensity = intensity;
+    this._updatedAt = new Date();
+  }
+
+  setExtractedInsights(insights: ExtractedInsightsData): void {
+    this._extractedInsights = insights;
     this._updatedAt = new Date();
   }
 
@@ -209,6 +245,11 @@ export class DialogueSession {
     // Only include noteContext if not excluded (for storage, we exclude it)
     if (!options?.excludeNoteContext) {
       data.noteContext = this._noteContext;
+    }
+
+    // Include extracted insights if present
+    if (this._extractedInsights) {
+      data.extractedInsights = this._extractedInsights;
     }
 
     return data;

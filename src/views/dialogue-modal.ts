@@ -326,6 +326,16 @@ export class DialogueModal extends Modal {
       }
 
       this.extractedInsights = result;
+
+      // Save insights to session for persistence
+      this.session.setExtractedInsights({
+        insights: result.insights,
+        noteTopics: result.noteTopics,
+        unansweredQuestions: result.unansweredQuestions,
+        noteEnhancements: result.noteEnhancements,
+        extractedAt: Date.now(),
+      });
+
       this.renderInsights();
 
       const totalItems = result.insights.length + result.noteTopics.length;
@@ -619,6 +629,17 @@ export class DialogueModal extends Modal {
 
     // Update intensity from loaded session
     this.selectedIntensity = session.intensity;
+
+    // Restore extracted insights if present
+    if (session.extractedInsights) {
+      this.extractedInsights = {
+        insights: session.extractedInsights.insights,
+        noteTopics: session.extractedInsights.noteTopics,
+        unansweredQuestions: session.extractedInsights.unansweredQuestions,
+        noteEnhancements: session.extractedInsights.noteEnhancements,
+      };
+      this.renderInsights();
+    }
 
     // Render the loaded questions
     this.renderQuestions();
