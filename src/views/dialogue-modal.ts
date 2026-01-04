@@ -335,6 +335,7 @@ export class DialogueModal extends Modal {
       new Notice(`오류: ${message}`);
     } finally {
       this.setLoading(false);
+      this.renderQuestions();
     }
   }
 
