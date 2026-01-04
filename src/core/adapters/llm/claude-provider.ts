@@ -71,6 +71,14 @@ export class ClaudeProvider extends BaseProvider {
       requestBody.system = systemPrompt;
     }
 
+    // Debug logging
+    console.log('[Socratic Challenger] Claude API Request:', {
+      model: this.modelId,
+      messagesCount: claudeMessages.length,
+      hasSystemPrompt: !!systemPrompt,
+      maxTokens: requestBody.max_tokens,
+    });
+
     try {
       const response = await this.makeRequest<ClaudeResponse>({
         url: `${this.config.endpoint}/messages`,

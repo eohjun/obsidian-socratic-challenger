@@ -71,6 +71,9 @@ export abstract class BaseProvider implements ILLMProvider {
    * Normalize various error types to standard format
    */
   private normalizeError(error: unknown): { message: string; code: string } {
+    // Log full error for debugging
+    console.error('[Socratic Challenger] API Error:', error);
+
     if (error instanceof Error) {
       if (error.message.includes('429') || error.message.includes('rate')) {
         return { message: '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.', code: 'RATE_LIMIT' };
