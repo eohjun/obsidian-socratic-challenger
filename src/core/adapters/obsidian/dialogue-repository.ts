@@ -3,7 +3,7 @@
  * 대화 세션을 Obsidian 노트에 저장/로드합니다.
  */
 
-import type { App, TFile } from 'obsidian';
+import { normalizePath, type App, type TFile } from 'obsidian';
 import { DialogueSession, type DialogueSessionData } from '../../domain/entities/dialogue-session';
 import type { IDialogueRepository } from '../../domain/interfaces/dialogue-repository.interface';
 
@@ -15,12 +15,13 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
   constructor(private readonly app: App) {}
 
   async save(session: DialogueSession): Promise<void> {
-    const file = this.app.vault.getAbstractFileByPath(session.notePath);
+    const normalizedPath = normalizePath(session.notePath);
+    const file = this.app.vault.getAbstractFileByPath(normalizedPath);
     if (!file || !(file instanceof this.app.vault.adapter.constructor)) {
       // File might not exist or not be a TFile, try to get it differently
-      const tFile = this.app.vault.getFileByPath(session.notePath);
+      const tFile = this.app.vault.getFileByPath(normalizedPath);
       if (!tFile) {
-        throw new Error(`노트를 찾을 수 없습니다: ${session.notePath}`);
+        throw new Error(`노트를 찾을 수 없습니다: ${normalizedPath}`);
       }
       await this.saveToFile(tFile as TFile, session);
     } else {
@@ -70,8 +71,8 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
   }
 
   async getHistory(noteId: string): Promise<DialogueSession[]> {
-    // noteId is the file path
-    const file = this.app.vault.getFileByPath(noteId);
+    // noteId is the file path (normalize for cross-platform compatibility)
+    const file = this.app.vault.getFileByPath(normalizePath(noteId));
     if (!file) {
       return [];
     }
