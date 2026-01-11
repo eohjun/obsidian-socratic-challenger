@@ -154,7 +154,7 @@ export default class SocraticChallengerPlugin extends Plugin {
     const activeFile = this.app.workspace.getActiveFile();
 
     if (!activeFile) {
-      new Notice('노트를 열어주세요.');
+      new Notice('Please open a note first.');
       return;
     }
 
@@ -164,7 +164,7 @@ export default class SocraticChallengerPlugin extends Plugin {
   private async startDialogueForFile(file: TFile): Promise<void> {
     // Check if AI is configured
     if (!this.aiService?.isAvailable()) {
-      new Notice('AI 설정을 먼저 완료해주세요. (설정 → Socratic Challenger)');
+      new Notice('Please configure AI settings first. (Settings → Socratic Challenger)');
       return;
     }
 
@@ -172,7 +172,7 @@ export default class SocraticChallengerPlugin extends Plugin {
       const content = await this.app.vault.read(file);
 
       if (!content.trim()) {
-        new Notice('노트 내용이 비어있습니다.');
+        new Notice('Note content is empty.');
         return;
       }
 
@@ -184,8 +184,8 @@ export default class SocraticChallengerPlugin extends Plugin {
       );
       modal.open();
     } catch (error) {
-      const message = error instanceof Error ? error.message : '노트를 읽을 수 없습니다.';
-      new Notice(`오류: ${message}`);
+      const message = error instanceof Error ? error.message : 'Unable to read note.';
+      new Notice(`Error: ${message}`);
     }
   }
 }

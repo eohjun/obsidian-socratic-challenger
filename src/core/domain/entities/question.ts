@@ -1,6 +1,6 @@
 /**
  * Question Entity
- * 개별 소크라테스식 질문을 나타냅니다.
+ * Represents an individual Socratic question.
  */
 
 import { QuestionType, QuestionTypeEnum } from '../value-objects/question-type';

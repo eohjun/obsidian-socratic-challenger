@@ -1,6 +1,6 @@
 /**
  * ContinueDialogueUseCase
- * 이전 대화 맥락을 기반으로 후속 질문을 생성합니다.
+ * Generates follow-up questions based on previous dialogue context.
  */
 
 import { DialogueSession } from '../../domain/entities/dialogue-session';
@@ -20,15 +20,14 @@ export interface ContinueDialogueOutput {
   error?: string;
 }
 
-const SYSTEM_PROMPT = `당신은 소크라테스식 대화의 전문가입니다.
-이전 대화 맥락을 바탕으로 더 깊은 탐구를 위한 후속 질문을 생성합니다.
+const SYSTEM_PROMPT = `You are an expert in Socratic dialogue.
+You generate follow-up questions for deeper exploration based on the previous dialogue context.
 
-**중요한 원칙:**
-- 질문은 반드시 한국어로 작성합니다.
-- 이전 응답에서 발견된 새로운 가정이나 아이디어를 파고듭니다.
-- 사용자가 놓쳤을 수 있는 부분을 탐구합니다.
-- 사고를 한 단계 더 깊게 하는 것이 목표입니다.
-- 이전과 중복되는 질문은 피합니다.`;
+**Key Principles:**
+- Dig into new assumptions or ideas discovered in previous responses.
+- Explore areas the user may have overlooked.
+- The goal is to deepen thinking one step further.
+- Avoid questions that duplicate previous ones.`;
 
 function buildContinuePrompt(input: ContinueDialogueInput): string {
   const session = input.session;
@@ -43,7 +42,7 @@ function buildContinuePrompt(input: ContinueDialogueInput): string {
       const q = entry.question;
       const r = entry.response;
       return `Q${index + 1}. ${q.getTypeIcon()} ${q.content}\n${
-        r ? `A${index + 1}. ${r}` : '(아직 답변 없음)'
+        r ? `A${index + 1}. ${r}` : '(No answer yet)'
       }`;
     })
     .join('\n\n');
@@ -62,37 +61,37 @@ function buildContinuePrompt(input: ContinueDialogueInput): string {
     })
     .join('\n');
 
-  return `다음 대화를 분석하고, ${intensityModifier} 후속 질문을 ${questionCount}개 생성해주세요.
+  return `Analyze the following dialogue and generate ${questionCount} follow-up questions ${intensityModifier}.
 
-**원본 노트:**
+**Original Note:**
 ---
 ${session.noteContext}
 ---
 
-**지금까지의 대화:**
+**Dialogue So Far:**
 ---
 ${historyText}
 ---
 
-**가장 최근 교환:**
-질문: ${lastExchange?.question.content ?? '(없음)'}
-응답: ${lastExchange?.response ?? '(없음)'}
+**Most Recent Exchange:**
+Question: ${lastExchange?.question.content ?? '(None)'}
+Response: ${lastExchange?.response ?? '(None)'}
 
-**요청하는 질문 유형:**
+**Requested Question Types:**
 ${typeDescriptions}
 
-**응답 형식:**
+**Response Format:**
 \`\`\`json
 {
   "questions": [
-    {"type": "EXPANSION", "content": "후속 질문 내용"},
-    {"type": "IMPLICATION", "content": "후속 질문 내용"}
+    {"type": "EXPANSION", "content": "Follow-up question content"},
+    {"type": "IMPLICATION", "content": "Follow-up question content"}
   ]
 }
 \`\`\`
 
-사용자의 마지막 응답에서 발견된 새로운 가정, 함의, 또는 확장 가능한 아이디어를 파고드세요.
-이전에 이미 물어본 질문과 중복되지 않도록 하세요.`;
+Dig into new assumptions, implications, or expandable ideas discovered in the user's last response.
+Ensure questions do not duplicate those already asked.`;
 }
 
 function parseQuestionsFromResponse(responseText: string): Question[] {
@@ -118,9 +117,9 @@ function parseQuestionsFromResponse(responseText: string): Question[] {
       const trimmed = line.trim();
       if (trimmed && trimmed.includes('?')) {
         let type = QuestionTypeEnum.EXPANSION;
-        if (trimmed.includes('가정') || trimmed.includes('🔍')) {
+        if (trimmed.toLowerCase().includes('assumption') || trimmed.includes('🔍')) {
           type = QuestionTypeEnum.ASSUMPTION;
-        } else if (trimmed.includes('함의') || trimmed.includes('🎯')) {
+        } else if (trimmed.toLowerCase().includes('implic') || trimmed.includes('🎯')) {
           type = QuestionTypeEnum.IMPLICATION;
         }
 
@@ -150,7 +149,7 @@ export class ContinueDialogueUseCase {
     if (session.getAnsweredQuestions().length === 0) {
       return {
         questions: [],
-        error: '후속 질문을 생성하려면 먼저 하나 이상의 질문에 답변해주세요.',
+        error: 'Please answer at least one question before generating follow-up questions.',
       };
     }
 
@@ -168,7 +167,7 @@ export class ContinueDialogueUseCase {
     if (!response.success) {
       return {
         questions: [],
-        error: response.error ?? 'LLM 요청에 실패했습니다.',
+        error: response.error ?? 'LLM request failed.',
         rawResponse: response.content,
       };
     }
@@ -178,7 +177,7 @@ export class ContinueDialogueUseCase {
     if (questions.length === 0) {
       return {
         questions: [],
-        error: '후속 질문을 생성하지 못했습니다.',
+        error: 'Failed to generate follow-up questions.',
         rawResponse: response.content,
       };
     }

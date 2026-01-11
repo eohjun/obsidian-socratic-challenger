@@ -1,14 +1,14 @@
 /**
  * IntensityLevel Value Object
- * 질문의 강도 수준을 정의합니다.
+ * Defines the intensity levels for Socratic questions.
  */
 
 export enum IntensityLevelEnum {
-  /** 부드러운: 격려하며 탐구를 유도 */
+  /** Gentle: Encourages exploration with a supportive tone */
   GENTLE = 'GENTLE',
-  /** 보통: 균형 잡힌 도전적 질문 */
+  /** Moderate: Balanced challenging questions */
   MODERATE = 'MODERATE',
-  /** 도전적: 강하게 논증을 검증 */
+  /** Challenging: Strongly examines arguments */
   CHALLENGING = 'CHALLENGING',
 }
 
@@ -24,21 +24,21 @@ export interface IntensityLevelInfo {
 
 const INTENSITY_LEVEL_INFO: Record<IntensityLevelEnum, Omit<IntensityLevelInfo, 'level'>> = {
   [IntensityLevelEnum.GENTLE]: {
-    displayText: '부드러움',
-    promptModifier: '친근하고 격려하는 톤으로, 탐구를 유도하며 부담 없이 생각해볼 수 있는',
-    description: '격려하며 부드럽게 탐구를 유도합니다.',
+    displayText: 'Gentle',
+    promptModifier: 'with a friendly and encouraging tone, guiding exploration in a low-pressure way',
+    description: 'Encourages exploration with gentle, supportive guidance.',
     cssClass: 'intensity-gentle',
   },
   [IntensityLevelEnum.MODERATE]: {
-    displayText: '보통',
-    promptModifier: '균형 잡힌 톤으로, 적절히 도전적이면서도 건설적인',
-    description: '균형 잡힌 도전적 질문을 제시합니다.',
+    displayText: 'Moderate',
+    promptModifier: 'with a balanced tone that is appropriately challenging yet constructive',
+    description: 'Presents balanced, challenging questions.',
     cssClass: 'intensity-moderate',
   },
   [IntensityLevelEnum.CHALLENGING]: {
-    displayText: '도전적',
-    promptModifier: '직접적이고 날카로운 톤으로, 논증의 약점을 정면으로 파고드는',
-    description: '강하게 논증을 검증하고 약점을 지적합니다.',
+    displayText: 'Challenging',
+    promptModifier: 'with a direct and sharp tone, probing deeply into argument weaknesses',
+    description: 'Strongly examines arguments and identifies weaknesses.',
     cssClass: 'intensity-challenging',
   },
 };

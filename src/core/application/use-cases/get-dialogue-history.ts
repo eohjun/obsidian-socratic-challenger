@@ -1,6 +1,6 @@
 /**
  * GetDialogueHistoryUseCase
- * 특정 노트의 대화 히스토리를 조회합니다.
+ * Retrieves the dialogue history for a specific note.
  */
 
 import { DialogueSession } from '../../domain/entities/dialogue-session';
@@ -27,7 +27,7 @@ export class GetDialogueHistoryUseCase {
 
       return { sessions };
     } catch (error) {
-      const message = error instanceof Error ? error.message : '대화 히스토리를 불러오는데 실패했습니다.';
+      const message = error instanceof Error ? error.message : 'Failed to load dialogue history.';
       return {
         sessions: [],
         error: message,

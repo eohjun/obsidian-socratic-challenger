@@ -1,6 +1,6 @@
 /**
  * DialogueSession Entity
- * 소크라테스식 대화 세션을 나타냅니다.
+ * Represents a Socratic dialogue session.
  */
 
 import { IntensityLevel, IntensityLevelEnum } from '../value-objects/intensity-level';
@@ -259,8 +259,8 @@ export class DialogueSession {
     const lines: string[] = [
       '## Socratic Dialogue',
       '',
-      `**시작 시간**: ${this._createdAt.toLocaleString('ko-KR')}`,
-      `**강도**: ${this._intensity.getDisplayText()}`,
+      `**Started**: ${this._createdAt.toLocaleString('en-US')}`,
+      `**Intensity**: ${this._intensity.getDisplayText()}`,
       '',
       '---',
       '',
@@ -275,7 +275,7 @@ export class DialogueSession {
       lines.push('');
 
       if (response) {
-        lines.push('**나의 답변:**');
+        lines.push('**My Response:**');
         lines.push('');
         lines.push(response.content);
         lines.push('');
@@ -287,12 +287,12 @@ export class DialogueSession {
 
     // Add extracted insights if present
     if (this._extractedInsights) {
-      lines.push('## 💡 추출된 인사이트');
+      lines.push('## 💡 Extracted Insights');
       lines.push('');
 
       // Key insights
       if (this._extractedInsights.insights.length > 0) {
-        lines.push('### 🔍 핵심 인사이트');
+        lines.push('### 🔍 Key Insights');
         lines.push('');
         this._extractedInsights.insights.forEach((insight) => {
           const icon = this.getCategoryIcon(insight.category);
@@ -305,7 +305,7 @@ export class DialogueSession {
 
       // Note topics
       if (this._extractedInsights.noteTopics.length > 0) {
-        lines.push('### 📝 새 노트 주제 제안');
+        lines.push('### 📝 Suggested Note Topics');
         lines.push('');
         this._extractedInsights.noteTopics.forEach((topic) => {
           lines.push(`#### ${topic.title}`);
@@ -313,7 +313,7 @@ export class DialogueSession {
           lines.push(topic.description);
           if (topic.suggestedTags.length > 0) {
             lines.push('');
-            lines.push(`**태그**: ${topic.suggestedTags.map(t => `#${t}`).join(' ')}`);
+            lines.push(`**Tags**: ${topic.suggestedTags.map(t => `#${t}`).join(' ')}`);
           }
           lines.push('');
         });
@@ -321,7 +321,7 @@ export class DialogueSession {
 
       // Unanswered questions
       if (this._extractedInsights.unansweredQuestions.length > 0) {
-        lines.push('### ❓ 미해결 질문');
+        lines.push('### ❓ Unanswered Questions');
         lines.push('');
         this._extractedInsights.unansweredQuestions.forEach((q) => {
           lines.push(`- ${q}`);
@@ -331,7 +331,7 @@ export class DialogueSession {
 
       // Note enhancements
       if (this._extractedInsights.noteEnhancements.length > 0) {
-        lines.push('### ✨ 노트 보완 제안');
+        lines.push('### ✨ Suggested Note Enhancements');
         lines.push('');
         this._extractedInsights.noteEnhancements.forEach((e) => {
           lines.push(`- ${e}`);

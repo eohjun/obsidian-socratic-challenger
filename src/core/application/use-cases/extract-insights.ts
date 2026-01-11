@@ -1,6 +1,6 @@
 /**
  * ExtractInsightsUseCase
- * 소크라테스식 대화에서 인사이트를 추출하고 새 노트 주제를 제안합니다.
+ * Extracts insights from Socratic dialogue and suggests new note topics.
  */
 
 import type { DialogueSession } from '../../domain/entities/dialogue-session';
@@ -31,28 +31,24 @@ export interface ExtractInsightsOutput {
   error?: string;
 }
 
-const SYSTEM_PROMPT = `당신은 소크라테스식 대화를 분석하여 핵심 인사이트를 추출하는 전문가입니다.
+const SYSTEM_PROMPT = `You are an expert at analyzing Socratic dialogues to extract key insights.
 
-사용자가 노트에 대해 질문을 받고 답변한 대화 내용을 분석하여:
-1. 대화를 통해 발견된 핵심 인사이트
-2. 새로운 영구 노트(Zettelkasten)로 발전시킬 수 있는 주제
-3. 아직 해결되지 않은 질문들
-4. 원본 노트에 추가하면 좋을 내용
+Analyze the dialogue where the user answered questions about their note to derive:
+1. Key insights discovered through the dialogue
+2. Topics that could be developed into new permanent notes (Zettelkasten)
+3. Questions that remain unresolved
+4. Content that would be good to add to the original note
 
-을 도출합니다.
+**Insight Categories:**
+- discovery: Newly discovered insights or realizations
+- perspective: New viewpoints or perspectives
+- question: Questions worth further exploration
+- connection: Connection points with other concepts
 
-**인사이트 카테고리:**
-- discovery: 새롭게 발견된 통찰 또는 깨달음
-- perspective: 새로운 관점 또는 시각
-- question: 더 탐구할 가치가 있는 질문
-- connection: 다른 개념과의 연결점
-
-**노트 주제 제안 원칙:**
-- 원자적(atomic): 하나의 아이디어만 담을 것
-- 독립적(standalone): 맥락 없이도 이해 가능할 것
-- 연결 가능(linkable): 다른 노트와 연결될 수 있을 것
-
-모든 응답은 한국어로 작성합니다.`;
+**Principles for Note Topic Suggestions:**
+- Atomic: Should contain only one idea
+- Standalone: Should be understandable without context
+- Linkable: Should be connectable to other notes`;
 
 function buildUserPrompt(session: DialogueSession): string {
   const history = session.getHistory();
@@ -62,57 +58,57 @@ function buildUserPrompt(session: DialogueSession): string {
       const q = `Q${index + 1}. [${entry.question.getTypeDisplayText()}] ${entry.question.content}`;
       const a = entry.response
         ? `A${index + 1}. ${entry.response}`
-        : `A${index + 1}. (미답변)`;
+        : `A${index + 1}. (Unanswered)`;
       return `${q}\n${a}`;
     })
     .join('\n\n');
 
-  return `다음 소크라테스식 대화를 분석하고 인사이트를 추출해주세요.
+  return `Analyze the following Socratic dialogue and extract insights.
 
-**원본 노트 내용:**
+**Original Note Content:**
 ---
 ${session.noteContext}
 ---
 
-**질문과 답변 대화:**
+**Question and Answer Dialogue:**
 ---
 ${dialogueText}
 ---
 
-**응답 형식:**
-다음 JSON 형식으로 응답하세요:
+**Response Format:**
+Respond in the following JSON format:
 \`\`\`json
 {
   "insights": [
     {
-      "title": "인사이트 제목 (간결하게)",
-      "description": "인사이트 설명 (2-3문장)",
+      "title": "Insight title (concise)",
+      "description": "Insight description (2-3 sentences)",
       "category": "discovery|perspective|question|connection"
     }
   ],
   "noteTopics": [
     {
-      "title": "새 노트 제목 (YYYYMMDDHHmm 형식 ID 없이, 개념 중심)",
-      "description": "이 노트가 다룰 핵심 내용",
+      "title": "New note title (concept-focused, no ID format)",
+      "description": "Core content this note will cover",
       "suggestedTags": ["tag1", "tag2"]
     }
   ],
   "unansweredQuestions": [
-    "아직 탐구되지 않은 질문 1",
-    "더 깊이 파고들 질문 2"
+    "Question not yet explored 1",
+    "Question to dig deeper into 2"
   ],
   "noteEnhancements": [
-    "원본 노트에 추가하면 좋을 내용 1",
-    "보완하면 좋을 관점 2"
+    "Content to add to the original note 1",
+    "Perspective to supplement 2"
   ]
 }
 \`\`\`
 
-**주의사항:**
-- insights는 3-5개
-- noteTopics는 2-3개 (정말 새 노트로 발전시킬 가치가 있는 것만)
-- unansweredQuestions는 1-3개
-- noteEnhancements는 1-3개`;
+**Guidelines:**
+- insights: 3-5 items
+- noteTopics: 2-3 items (only those truly worth developing into new notes)
+- unansweredQuestions: 1-3 items
+- noteEnhancements: 1-3 items`;
 }
 
 function parseInsightsFromResponse(responseText: string): Omit<ExtractInsightsOutput, 'rawResponse' | 'error'> {
@@ -162,7 +158,7 @@ export class ExtractInsightsUseCase {
         noteTopics: [],
         unansweredQuestions: [],
         noteEnhancements: [],
-        error: '인사이트를 추출하려면 최소 하나 이상의 질문에 답변해야 합니다.',
+        error: 'At least one question must be answered to extract insights.',
       };
     }
 
@@ -183,7 +179,7 @@ export class ExtractInsightsUseCase {
         noteTopics: [],
         unansweredQuestions: [],
         noteEnhancements: [],
-        error: response.error ?? 'LLM 요청에 실패했습니다.',
+        error: response.error ?? 'LLM request failed.',
         rawResponse: response.content,
       };
     }
@@ -193,7 +189,7 @@ export class ExtractInsightsUseCase {
     if (result.insights.length === 0 && result.noteTopics.length === 0) {
       return {
         ...result,
-        error: '인사이트를 추출하지 못했습니다. 답변이 너무 짧을 수 있습니다.',
+        error: 'Failed to extract insights. The responses may be too short.',
         rawResponse: response.content,
       };
     }

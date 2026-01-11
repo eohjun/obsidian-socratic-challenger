@@ -1,6 +1,6 @@
 /**
  * ObsidianDialogueRepository
- * 대화 세션을 Obsidian 노트에 저장/로드합니다.
+ * Saves/loads dialogue sessions to/from Obsidian notes.
  */
 
 import { normalizePath, type App, type TFile } from 'obsidian';
@@ -8,7 +8,7 @@ import { DialogueSession, type DialogueSessionData } from '../../domain/entities
 import type { IDialogueRepository } from '../../domain/interfaces/dialogue-repository.interface';
 
 const DIALOGUE_SECTION_MARKER = '## Socratic Dialogue';
-const CALLOUT_START = '> [!abstract]- Socratic Data (세션 데이터 - 수정하지 마세요)';
+const CALLOUT_START = '> [!abstract]- Socratic Data (Session data - Do not modify)';
 const CALLOUT_DATA_PREFIX = '> ';
 
 export class ObsidianDialogueRepository implements IDialogueRepository {
@@ -21,7 +21,7 @@ export class ObsidianDialogueRepository implements IDialogueRepository {
       // File might not exist or not be a TFile, try to get it differently
       const tFile = this.app.vault.getFileByPath(normalizedPath);
       if (!tFile) {
-        throw new Error(`노트를 찾을 수 없습니다: ${normalizedPath}`);
+        throw new Error(`Note not found: ${normalizedPath}`);
       }
       await this.saveToFile(tFile as TFile, session);
     } else {

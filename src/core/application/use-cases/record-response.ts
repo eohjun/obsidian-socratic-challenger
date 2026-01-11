@@ -1,6 +1,6 @@
 /**
  * RecordResponseUseCase
- * 사용자의 응답을 대화 세션에 기록합니다.
+ * Records the user's response to the dialogue session.
  */
 
 import { DialogueSession } from '../../domain/entities/dialogue-session';
@@ -26,7 +26,7 @@ export class RecordResponseUseCase {
     if (!response.trim()) {
       return {
         session,
-        error: '응답 내용이 비어있습니다.',
+        error: 'Response content is empty.',
       };
     }
 
@@ -39,7 +39,7 @@ export class RecordResponseUseCase {
 
       return { session };
     } catch (error) {
-      const message = error instanceof Error ? error.message : '응답 저장에 실패했습니다.';
+      const message = error instanceof Error ? error.message : 'Failed to save response.';
       return {
         session,
         error: message,

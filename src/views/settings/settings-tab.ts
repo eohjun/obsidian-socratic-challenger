@@ -27,12 +27,12 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
   }
 
   private renderAISettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: 'AI 설정' });
+    containerEl.createEl('h2', { text: 'AI Settings' });
 
     // Provider Selection
     new Setting(containerEl)
-      .setName('AI 프로바이더')
-      .setDesc('사용할 AI 서비스를 선택하세요')
+      .setName('AI Provider')
+      .setDesc('Select the AI service to use')
       .addDropdown((dropdown) => {
         Object.entries(AI_PROVIDERS).forEach(([key, config]) => {
           dropdown.addOption(key, config.displayName);
@@ -49,11 +49,11 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
     // API Key
     const currentProvider = this.plugin.settings.ai.provider;
     new Setting(containerEl)
-      .setName(`${AI_PROVIDERS[currentProvider].displayName} API 키`)
-      .setDesc('API 키를 입력하세요')
+      .setName(`${AI_PROVIDERS[currentProvider].displayName} API Key`)
+      .setDesc('Enter your API key')
       .addText((text) => {
         text
-          .setPlaceholder('API 키 입력')
+          .setPlaceholder('Enter API key')
           .setValue(this.plugin.settings.ai.apiKeys[currentProvider] ?? '')
           .onChange(async (value) => {
             this.plugin.settings.ai.apiKeys[currentProvider] = value;
@@ -63,45 +63,45 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
       })
       .addButton((button) => {
         button
-          .setButtonText('테스트')
+          .setButtonText('Test')
           .onClick(async () => {
             const provider = this.plugin.getCurrentProvider();
             const apiKey = this.plugin.settings.ai.apiKeys[currentProvider];
 
             if (!provider) {
-              new Notice('프로바이더를 찾을 수 없습니다.');
+              new Notice('Provider not found.');
               return;
             }
 
             if (!apiKey) {
-              new Notice('API 키를 먼저 입력해주세요.');
+              new Notice('Please enter an API key first.');
               return;
             }
 
             button.setDisabled(true);
-            button.setButtonText('테스트 중...');
+            button.setButtonText('Testing...');
 
             try {
               const isValid = await provider.testApiKey(apiKey);
               if (isValid) {
-                new Notice('✅ API 키가 유효합니다!');
+                new Notice('✅ API key is valid!');
               } else {
-                new Notice('❌ API 키가 유효하지 않습니다.');
+                new Notice('❌ API key is invalid.');
               }
             } catch (error) {
-              const message = error instanceof Error ? error.message : '알 수 없는 오류';
-              new Notice(`❌ 테스트 실패: ${message}`);
+              const message = error instanceof Error ? error.message : 'Unknown error';
+              new Notice(`❌ Test failed: ${message}`);
             } finally {
               button.setDisabled(false);
-              button.setButtonText('테스트');
+              button.setButtonText('Test');
             }
           });
       });
 
     // Model Selection
     new Setting(containerEl)
-      .setName('모델')
-      .setDesc('사용할 모델을 선택하세요')
+      .setName('Model')
+      .setDesc('Select the model to use')
       .addDropdown((dropdown) => {
         this.modelDropdown = dropdown;
         this.populateModelDropdown(dropdown, currentProvider);
@@ -117,11 +117,11 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
 
     // Budget Limit
     new Setting(containerEl)
-      .setName('예산 한도 (USD)')
-      .setDesc('월간 API 사용 예산 한도를 설정하세요 (선택 사항)')
+      .setName('Budget Limit (USD)')
+      .setDesc('Set monthly API usage budget limit (optional)')
       .addText((text) => {
         text
-          .setPlaceholder('예: 10.00')
+          .setPlaceholder('e.g., 10.00')
           .setValue(
             this.plugin.settings.ai.budgetLimit?.toString() ?? ''
           )
@@ -136,12 +136,12 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
   }
 
   private renderDialogueSettings(containerEl: HTMLElement): void {
-    containerEl.createEl('h2', { text: '대화 설정' });
+    containerEl.createEl('h2', { text: 'Dialogue Settings' });
 
     // Default Intensity
     new Setting(containerEl)
-      .setName('기본 질문 강도')
-      .setDesc('질문의 기본 강도를 선택하세요')
+      .setName('Default Question Intensity')
+      .setDesc('Select the default intensity for questions')
       .addDropdown((dropdown) => {
         IntensityLevel.all().forEach((level) => {
           dropdown.addOption(level.getValue(), level.getDisplayText());
@@ -156,8 +156,8 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
 
     // Default Question Types
     new Setting(containerEl)
-      .setName('기본 질문 유형')
-      .setDesc('기본으로 활성화할 질문 유형을 선택하세요');
+      .setName('Default Question Types')
+      .setDesc('Select question types to enable by default');
 
     const questionTypesContainer = containerEl.createDiv({
       cls: 'socratic-question-types-container',
@@ -194,8 +194,8 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
 
     // Default Question Count
     new Setting(containerEl)
-      .setName('기본 질문 개수')
-      .setDesc('한 번에 생성할 기본 질문 개수 (1-5)')
+      .setName('Default Question Count')
+      .setDesc('Default number of questions to generate at a time (1-5)')
       .addSlider((slider) => {
         slider
           .setLimits(1, 5, 1)
@@ -209,8 +209,8 @@ export class SocraticChallengerSettingTab extends PluginSettingTab {
 
     // Auto Save
     new Setting(containerEl)
-      .setName('자동 저장')
-      .setDesc('대화 내용을 노트에 자동으로 저장합니다')
+      .setName('Auto Save')
+      .setDesc('Automatically save dialogue to the note')
       .addToggle((toggle) => {
         toggle
           .setValue(this.plugin.settings.dialogue.autoSaveDialogue)

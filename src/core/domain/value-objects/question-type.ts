@@ -1,18 +1,18 @@
 /**
  * QuestionType Value Object
- * 소크라테스식 질문의 5가지 유형을 정의합니다.
+ * Defines the 5 types of Socratic questions.
  */
 
 export enum QuestionTypeEnum {
-  /** 가정 도전: 숨겨진 전제와 가정을 검토 */
+  /** Assumption Challenge: Examines hidden premises and assumptions */
   ASSUMPTION = 'ASSUMPTION',
-  /** 관점 전환: 다른 시각에서 바라보기 */
+  /** Perspective Shift: Views from different angles */
   PERSPECTIVE = 'PERSPECTIVE',
-  /** 확장: 더 넓은 맥락과 연결 */
+  /** Expansion: Connects with broader contexts */
   EXPANSION = 'EXPANSION',
-  /** 명확화: 모호한 부분을 구체화 */
+  /** Clarification: Specifies ambiguous parts */
   CLARIFICATION = 'CLARIFICATION',
-  /** 함의: 결론과 영향 탐구 */
+  /** Implication: Explores conclusions and impacts */
   IMPLICATION = 'IMPLICATION',
 }
 
@@ -28,34 +28,34 @@ export interface QuestionTypeInfo {
 
 const QUESTION_TYPE_INFO: Record<QuestionTypeEnum, Omit<QuestionTypeInfo, 'type'>> = {
   [QuestionTypeEnum.ASSUMPTION]: {
-    displayText: '가정 도전',
+    displayText: 'Assumption',
     icon: '🔍',
-    promptHint: '이 주장의 숨겨진 전제나 가정을 검토하는 질문을 생성하세요.',
-    description: '숨겨진 전제와 당연시되는 가정을 검토합니다.',
+    promptHint: 'Generate questions that examine hidden premises or assumptions in this claim.',
+    description: 'Examines hidden premises and taken-for-granted assumptions.',
   },
   [QuestionTypeEnum.PERSPECTIVE]: {
-    displayText: '관점 전환',
+    displayText: 'Perspective',
     icon: '👁️',
-    promptHint: '다른 관점이나 시각에서 이 아이디어를 바라보는 질문을 생성하세요.',
-    description: '다른 입장이나 시간대에서 바라보는 시각을 탐구합니다.',
+    promptHint: 'Generate questions that view this idea from different perspectives or angles.',
+    description: 'Explores viewpoints from different positions or timeframes.',
   },
   [QuestionTypeEnum.EXPANSION]: {
-    displayText: '확장',
+    displayText: 'Expansion',
     icon: '🌐',
-    promptHint: '이 아이디어를 더 넓은 맥락에서 연결하거나 확장하는 질문을 생성하세요.',
-    description: '더 넓은 맥락과 다른 영역과의 연결을 탐구합니다.',
+    promptHint: 'Generate questions that connect or expand this idea in broader contexts.',
+    description: 'Explores connections with broader contexts and other domains.',
   },
   [QuestionTypeEnum.CLARIFICATION]: {
-    displayText: '명확화',
+    displayText: 'Clarification',
     icon: '💡',
-    promptHint: '모호하거나 불명확한 부분을 구체화하는 질문을 생성하세요.',
-    description: '모호한 개념이나 표현을 구체화합니다.',
+    promptHint: 'Generate questions that clarify ambiguous or unclear parts.',
+    description: 'Clarifies ambiguous concepts or expressions.',
   },
   [QuestionTypeEnum.IMPLICATION]: {
-    displayText: '함의',
+    displayText: 'Implication',
     icon: '🎯',
-    promptHint: '이 아이디어의 결론, 영향, 한계를 탐구하는 질문을 생성하세요.',
-    description: '논리적 결론과 실제적 영향을 탐구합니다.',
+    promptHint: 'Generate questions that explore conclusions, impacts, and limitations of this idea.',
+    description: 'Explores logical conclusions and practical impacts.',
   },
 };
 
