@@ -42,6 +42,7 @@ export default class SocraticChallengerPlugin extends Plugin {
 
   async onunload(): Promise<void> {
     console.log('Socratic Challenger plugin unloaded');
+    this.aiService = null;
   }
 
   async loadSettings(): Promise<void> {
@@ -133,7 +134,7 @@ export default class SocraticChallengerPlugin extends Plugin {
     if (!service) return;
 
     (['claude', 'openai', 'gemini', 'grok'] as AIProviderType[]).forEach((type) => {
-      const provider = service['providers'].get(type);
+      const provider = service.getProvider(type);
       if (provider) {
         const apiKey = this.settings.ai.apiKeys[type];
         if (apiKey) {

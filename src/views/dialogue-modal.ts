@@ -71,6 +71,11 @@ export class DialogueModal extends Modal {
   onClose(): void {
     this.contentEl.empty();
     this.responseInputs.clear();
+    this.session = null;
+    this.extractedInsights = null;
+    this.questionContainer = null;
+    this.actionsContainer = null;
+    this.insightsContainer = null;
   }
 
   private renderHeader(container: HTMLElement): void {
@@ -130,7 +135,10 @@ export class DialogueModal extends Modal {
     QuestionType.all().forEach((type) => {
       const info = type.getInfo();
       const label = typesDiv.createEl('label', { cls: 'question-type-toggle' });
-      const checkbox = label.createEl('input', { type: 'checkbox' });
+      const checkbox = label.createEl('input', {
+        type: 'checkbox',
+        attr: { 'aria-label': `Question type: ${info.displayText}` },
+      });
       checkbox.checked = this.selectedTypes.includes(info.type);
       checkbox.addEventListener('change', () => {
         if (checkbox.checked) {
@@ -442,6 +450,10 @@ export class DialogueModal extends Modal {
     const typeClass = `question-type-${question.type.getValue().toLowerCase()}`;
     const itemDiv = this.questionContainer.createDiv({
       cls: `socratic-question-item ${typeClass}`,
+      attr: {
+        'aria-label': `Question ${index + 1}: ${question.getTypeDisplayText()}`,
+        'data-question-id': question.id,
+      },
     });
 
     // Question type badge
@@ -491,6 +503,7 @@ export class DialogueModal extends Modal {
     textArea.setPlaceholder('Write your thoughts on this question...');
     textArea.setValue(initialValue);
     textArea.inputEl.rows = 3;
+    textArea.inputEl.setAttribute('aria-label', 'Your response to this question');
     this.responseInputs.set(questionId, textArea);
 
     const btnContainer = responseArea.createDiv({ cls: 'response-btn-container' });
@@ -526,7 +539,37 @@ export class DialogueModal extends Modal {
 
     try {
       this.session.addResponse(questionId, response);
-      this.renderQuestions();
+
+      // Incremental DOM update: only update the specific question item
+      const questionEl = this.questionContainer?.querySelector(`[data-question-id="${questionId}"]`) as HTMLElement | null;
+      if (questionEl) {
+        // Remove existing response area and saved response
+        const existingArea = questionEl.querySelector('.socratic-response-area');
+        if (existingArea) existingArea.remove();
+        const existingSaved = questionEl.querySelector('.socratic-response-saved');
+        if (existingSaved) existingSaved.remove();
+
+        // Re-render response section for this question only
+        const savedResponse = this.session.getResponse(questionId);
+        if (savedResponse) {
+          const responseDiv = questionEl.createDiv({ cls: 'socratic-response-saved' });
+
+          const headerDiv = responseDiv.createDiv({ cls: 'response-header' });
+          headerDiv.createSpan({ cls: 'response-label', text: 'My Response:' });
+
+          const editBtn = new ButtonComponent(headerDiv);
+          editBtn.setButtonText('✏️ Edit');
+          editBtn.setClass('response-edit-btn');
+          editBtn.onClick(() => this.showEditMode(questionId, savedResponse.content, questionEl, 0));
+
+          responseDiv.createDiv({ cls: 'response-content', text: savedResponse.content });
+        }
+        this.responseInputs.delete(questionId);
+      } else {
+        // Fallback to full rebuild if element not found
+        this.renderQuestions();
+      }
+
       new Notice(isEdit ? 'Response updated.' : 'Response saved.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save response.';
@@ -570,7 +613,9 @@ export class DialogueModal extends Modal {
       if (loading) {
         this.questionContainer.empty();
         const loadingDiv = this.questionContainer.createDiv({ cls: 'socratic-loading' });
-        loadingDiv.createSpan({ cls: 'loading-spinner', text: '⏳' });
+        loadingDiv.setAttribute('aria-live', 'polite');
+        const spinnerEl = loadingDiv.createDiv({ cls: 'loading-spinner' });
+        spinnerEl.createDiv({ cls: 'loading-spinner-ring' });
         loadingDiv.createSpan({ text: message || 'Generating questions...' });
       }
     }

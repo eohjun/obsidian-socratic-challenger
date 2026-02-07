@@ -103,6 +103,13 @@ export class AIService {
   }
 
   /**
+   * Get a specific provider by type
+   */
+  getProvider(type: AIProviderType): ILLMProvider | undefined {
+    return this.providers.get(type);
+  }
+
+  /**
    * List of registered providers
    */
   getAvailableProviders(): AIProviderType[] {
