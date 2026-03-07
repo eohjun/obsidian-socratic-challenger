@@ -30,9 +30,9 @@ export const DEFAULT_SETTINGS: SocraticChallengerSettings = {
     provider: 'claude',
     apiKeys: {},
     models: {
-      claude: 'claude-sonnet-4-5-20250929',
-      openai: 'gpt-5.2',
-      gemini: 'gemini-3-flash-preview',
+      claude: 'claude-sonnet-4-6',
+      openai: 'gpt-5-mini',
+      gemini: 'gemini-2.5-flash',
       grok: 'grok-4-1-fast',
     },
     budgetLimit: undefined,
