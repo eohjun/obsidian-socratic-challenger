@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: SocraticChallengerSettings = {
     apiKeys: {},
     models: {
       claude: 'claude-sonnet-4-6',
-      openai: 'gpt-5-mini',
+      openai: 'gpt-5.4-mini',
       gemini: 'gemini-2.5-flash',
       grok: 'grok-4-1-fast',
     },
