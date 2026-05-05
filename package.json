@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-socratic-challenger",
-	"version": "0.4.15",
+	"version": "0.4.16",
 	"description": "AI dialogue partner that asks Socratic questions to deepen thinking",
 	"main": "main.js",
 	"scripts": {
@@ -18,12 +18,14 @@
 	"author": "eohjun",
 	"license": "MIT",
 	"devDependencies": {
+		"@codemirror/state": "^6.6.0",
+		"@codemirror/view": "^6.41.1",
 		"builtin-modules": "^5.0.0",
 		"esbuild": "^0.27.2",
 		"obsidian": "^1.11.0",
 		"typescript": "^6.0.2"
 	},
 	"dependencies": {
-		"obsidian-llm-shared": "github:eohjun/obsidian-llm-shared"
+		"obsidian-llm-shared": "github:eohjun/obsidian-llm-shared#v1.3.0"
 	}
 }
